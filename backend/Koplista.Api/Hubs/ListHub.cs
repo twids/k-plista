@@ -1,21 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using KPlista.Api.Data;
+using Koplista.Api.Data;
 using System.Security.Claims;
 using System.Collections.Concurrent;
 
-namespace KPlista.Api.Hubs;
+namespace Koplista.Api.Hubs;
 
 [Authorize]
 public class ListHub : Hub
 {
-    private readonly KPlistaDbContext _context;
+    private readonly KoplistaDbContext _context;
     private readonly ILogger<ListHub> _logger;
     private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> _listConnections = new();
     private static readonly ConcurrentDictionary<string, ListUserInfo> _connectionUsers = new();
 
-    public ListHub(KPlistaDbContext context, ILogger<ListHub> logger)
+    public ListHub(KoplistaDbContext context, ILogger<ListHub> logger)
     {
         _context = context;
         _logger = logger;

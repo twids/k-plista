@@ -21,13 +21,13 @@ jobs:
           dotnet-version: '9.0.x'
       
       - name: Restore dependencies
-        run: dotnet restore backend/KPlista.Api/KPlista.Api.csproj
+        run: dotnet restore backend/Koplista.Api/Koplista.Api.csproj
       
       - name: Build
-        run: dotnet build backend/KPlista.Api/KPlista.Api.csproj --configuration Release --no-restore
+        run: dotnet build backend/Koplista.Api/Koplista.Api.csproj --configuration Release --no-restore
       
       - name: Test
-        run: dotnet test backend/KPlista.Api/KPlista.Api.csproj --no-build --verbosity normal --configuration Release
+        run: dotnet test backend/Koplista.Api/Koplista.Api.csproj --no-build --verbosity normal --configuration Release
 
   frontend-build:
     name: Build Frontend

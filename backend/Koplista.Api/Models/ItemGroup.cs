@@ -1,4 +1,4 @@
-namespace KPlista.Api.Models;
+namespace Koplista.Api.Models;
 
 public class ItemGroup
 {

@@ -3,17 +3,17 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
-COPY KPlista.Api/KPlista.Api.csproj KPlista.Api/
-RUN dotnet restore "KPlista.Api/KPlista.Api.csproj"
+COPY Koplista.Api/Koplista.Api.csproj Koplista.Api/
+RUN dotnet restore "Koplista.Api/Koplista.Api.csproj"
 
 # Copy everything else and build
-COPY KPlista.Api/ KPlista.Api/
-WORKDIR "/src/KPlista.Api"
-RUN dotnet build "KPlista.Api.csproj" -c Release -o /app/build
+COPY Koplista.Api/ Koplista.Api/
+WORKDIR "/src/Koplista.Api"
+RUN dotnet build "Koplista.Api.csproj" -c Release -o /app/build
 
 # Publish stage
 FROM build AS publish
-RUN dotnet publish "KPlista.Api.csproj" -c Release -o /app/publish
+RUN dotnet publish "Koplista.Api.csproj" -c Release -o /app/publish
 
 # Final stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
@@ -22,4 +22,4 @@ EXPOSE 8080
 EXPOSE 8081
 
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "KPlista.Api.dll"]
+ENTRYPOINT ["dotnet", "Koplista.Api.dll"]

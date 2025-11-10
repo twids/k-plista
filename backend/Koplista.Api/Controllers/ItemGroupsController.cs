@@ -1,22 +1,22 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using KPlista.Api.Data;
-using KPlista.Api.DTOs;
-using KPlista.Api.Models;
+using Koplista.Api.Data;
+using Koplista.Api.DTOs;
+using Koplista.Api.Models;
 using System.Security.Claims;
 
-namespace KPlista.Api.Controllers;
+namespace Koplista.Api.Controllers;
 
 [ApiController]
 [Route("api/grocerylists/{listId}/groups")]
 [Authorize]
 public class ItemGroupsController : ControllerBase
 {
-    private readonly KPlistaDbContext _context;
+    private readonly KoplistaDbContext _context;
     private readonly ILogger<ItemGroupsController> _logger;
 
-    public ItemGroupsController(KPlistaDbContext context, ILogger<ItemGroupsController> logger)
+    public ItemGroupsController(KoplistaDbContext context, ILogger<ItemGroupsController> logger)
     {
         _context = context;
         _logger = logger;
