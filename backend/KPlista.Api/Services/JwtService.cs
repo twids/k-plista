@@ -16,13 +16,31 @@ public class JwtService : IJwtService
     private readonly string _issuer;
     private readonly string _audience;
     private readonly int _expirationMinutes;
+    private readonly ILogger<JwtService> _logger;
+    private const string DefaultSecret = "your-secret-key-min-32-characters-long-for-security";
 
-    public JwtService(IConfiguration configuration)
+    public JwtService(IConfiguration configuration, ILogger<JwtService> logger)
     {
-        _secret = configuration["Jwt:Secret"] ?? "your-secret-key-min-32-characters-long-for-security";
+        _logger = logger;
+        _secret = configuration["Jwt:Secret"] ?? DefaultSecret;
         _issuer = configuration["Jwt:Issuer"] ?? "kplista-api";
         _audience = configuration["Jwt:Audience"] ?? "kplista-app";
         _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 1440); // Default 24 hours
+
+        // Validate and warn about insecure configuration
+        if (_secret == DefaultSecret)
+        {
+            _logger.LogWarning(
+                "Using default JWT secret. This is insecure and should not be used in production. " +
+                "Please configure Jwt:Secret in appsettings.json or environment variables.");
+        }
+
+        if (_secret.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "JWT secret must be at least 32 characters long for security. " +
+                "Please configure a longer secret in Jwt:Secret.");
+        }
     }
 
     public string GenerateToken(Guid userId, string email, string name)

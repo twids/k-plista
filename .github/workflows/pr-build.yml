@@ -103,9 +103,11 @@ jobs:
         run: |
           docker compose up -d --build
           echo "Waiting for services to be ready..."
-          timeout 120 bash -c 'until curl -sf http://localhost/ > /dev/null 2>&1; do echo "Waiting for frontend..."; sleep 5; done' || true
-          sleep 15
-          echo "Services should be ready now"
+          timeout 120 bash -c 'until curl -sf http://localhost/ > /dev/null 2>&1; do echo "Waiting for frontend..."; sleep 5; done'
+          echo "Frontend is ready. Waiting for backend health endpoint..."
+          timeout 120 bash -c 'until curl -sf http://localhost:5000/health > /dev/null 2>&1; do echo "Waiting for backend..."; sleep 5; done'
+          sleep 5
+          echo "Services are ready"
       
       - name: Check service health
         run: |

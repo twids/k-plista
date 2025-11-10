@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { AuthHelper, TEST_USERS } from './helpers/auth.helper';
+import { AuthHelper } from './helpers/auth.helper';
 import { ApiHelper } from './helpers/api.helper';
 
 test.describe('Grocery List Management API', () => {

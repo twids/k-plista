@@ -351,6 +351,9 @@ app.MapHub<ListHub>("/hubs/list");
 // This should come after MapControllers to not interfere with API routes
 app.MapFallbackToFile("index.html");
 
+// Add health check endpoint
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
 // Apply database migrations on startup
 using (var scope = app.Services.CreateScope())
 {

@@ -1,5 +1,4 @@
 import { APIRequestContext, request } from '@playwright/test';
-import { TestUser } from './auth.helper';
 
 export interface GroceryList {
   id: string;
