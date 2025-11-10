@@ -143,7 +143,7 @@ public class GroceryItemsController : ControllerBase
         if (dto.GroupId.HasValue)
         {
             var groupExists = await _context.ItemGroups
-                .AnyAsync(g => g.Id == dto.GroupId.Value && g.GroceryListId == listId);
+                .AnyAsync(g => g.Id == dto.GroupId && g.GroceryListId == listId);
 
             if (!groupExists)
             {
@@ -213,7 +213,7 @@ public class GroceryItemsController : ControllerBase
         if (dto.GroupId.HasValue)
         {
             var groupExists = await _context.ItemGroups
-                .AnyAsync(g => g.Id == dto.GroupId.Value && g.GroceryListId == listId);
+                .AnyAsync(g => g.Id == dto.GroupId && g.GroceryListId == listId);
 
             if (!groupExists)
             {

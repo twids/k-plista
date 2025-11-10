@@ -87,14 +87,19 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<KPlistaDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
     try
     {
         db.Database.Migrate();
     }
-    catch (Exception ex)
+    catch (Npgsql.NpgsqlException ex)
     {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
+        logger.LogError(ex, "A database error occurred while migrating the database.");
+    }
+    catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+    {
+        logger.LogError(ex, "An error occurred while applying database migrations.");
     }
 }
 
