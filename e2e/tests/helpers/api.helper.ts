@@ -37,7 +37,7 @@ export class ApiHelper {
   private baseURL: string;
   private apiContext: APIRequestContext | null = null;
 
-  constructor(baseURL: string = 'http://localhost:5000') {
+  constructor(baseURL: string = 'http://localhost') {
     this.baseURL = baseURL;
   }
 
