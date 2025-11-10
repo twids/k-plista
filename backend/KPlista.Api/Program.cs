@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using KPlista.Api.Data;
+using KPlista.Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,8 +12,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
+// Add SignalR
+builder.Services.AddSignalR();
+
+// Configure CORS for frontend
 // Configure CORS for local development only
 // In production, frontend is served from same origin so CORS is not needed
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -55,6 +61,23 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
+    
+    // Support authentication for SignalR
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            
+            return Task.CompletedTask;
+        }
+    };
 })
 .AddGoogle(options =>
 {
@@ -94,6 +117,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ListHub>("/hubs/list");
 
 // SPA fallback - serve index.html for non-API routes (public)
 // This should come after MapControllers to not interfere with API routes
