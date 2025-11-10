@@ -79,7 +79,11 @@ if (app.Environment.IsDevelopment())
     app.UseCors("AllowFrontend");
 }
 
-app.UseHttpsRedirection();
+// HTTPS redirection only in development; Docker container runs on HTTP behind a reverse proxy
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Serve static files from wwwroot (public frontend assets - CSS, JS, images)
 // Static files are served before authentication as they should be publicly accessible

@@ -47,11 +47,18 @@ The easiest way to run K-Plista is using the published Docker image:
 
 1. Download the example files:
 ```bash
-# Download docker-compose example
+# Download docker-compose example (choose one of the following)
 wget https://raw.githubusercontent.com/twids/k-plista/main/docker-compose.example.yml -O docker-compose.yml
+# OR
+curl -o docker-compose.yml https://raw.githubusercontent.com/twids/k-plista/main/docker-compose.example.yml
 
-# Download .env example and configure it
+# Download .env example and configure it (choose one of the following)
 wget https://raw.githubusercontent.com/twids/k-plista/main/.env.example -O .env
+# OR
+curl -o .env https://raw.githubusercontent.com/twids/k-plista/main/.env.example
+
+# If you don't have wget or curl, you can manually download these files from:
+# https://github.com/twids/k-plista
 # Edit .env and set your JWT_SECRET and other sensitive values
 ```
 
