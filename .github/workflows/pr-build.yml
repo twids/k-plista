@@ -101,16 +101,19 @@ jobs:
       
       - name: Start application with Docker Compose
         run: |
-          docker-compose up -d --build
+          docker compose up -d --build
           echo "Waiting for services to be ready..."
-          timeout 120 bash -c 'until curl -f http://localhost/health || curl -f http://localhost/ 2>/dev/null; do sleep 2; done' || true
-          sleep 10
+          timeout 120 bash -c 'until curl -sf http://localhost/ > /dev/null 2>&1; do echo "Waiting for frontend..."; sleep 5; done' || true
+          sleep 15
+          echo "Services should be ready now"
       
       - name: Check service health
         run: |
-          docker-compose ps
-          docker-compose logs backend | tail -50
-          docker-compose logs frontend | tail -50
+          docker compose ps
+          echo "=== Backend logs ===" 
+          docker compose logs backend | tail -50
+          echo "=== Frontend logs ==="
+          docker compose logs frontend | tail -50
       
       - name: Run E2E tests
         working-directory: e2e
@@ -138,6 +141,7 @@ jobs:
       - name: Publish test results
         if: always()
         uses: dorny/test-reporter@v1
+        continue-on-error: true
         with:
           name: E2E Test Results
           path: e2e/test-results/junit.xml
@@ -148,12 +152,12 @@ jobs:
         if: failure()
         run: |
           echo "=== Backend Logs ==="
-          docker-compose logs backend
+          docker compose logs backend
           echo "=== Frontend Logs ==="
-          docker-compose logs frontend
+          docker compose logs frontend
           echo "=== PostgreSQL Logs ==="
-          docker-compose logs postgres
+          docker compose logs postgres
       
       - name: Stop application
         if: always()
-        run: docker-compose down -v
+        run: docker compose down -v
