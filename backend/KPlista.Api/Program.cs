@@ -347,12 +347,12 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<ListHub>("/hubs/list");
 
-// SPA fallback - serve index.html for non-API routes (public)
-// This should come after MapControllers to not interfere with API routes
-app.MapFallbackToFile("index.html");
-
-// Add health check endpoint
+// Add health check endpoint (before SPA fallback to avoid being caught by it)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
+// SPA fallback - serve index.html for non-API routes (public)
+// This should come after MapControllers and health endpoint to not interfere with API routes
+app.MapFallbackToFile("index.html");
 
 // Apply database migrations on startup
 using (var scope = app.Services.CreateScope())
