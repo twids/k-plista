@@ -10,6 +10,8 @@ A modern, mobile-first grocery list application built with a React frontend and 
 - 👥 **List Sharing** - Share lists with other users with view/edit permissions
 - ✅ **Mark as Bought** - Track purchased items in real-time
 - 🔐 **OIDC Authentication** - Sign in with Google, Facebook, or Apple
+- ⚡ **Real-Time Updates** - See changes instantly with SignalR WebSocket integration
+- 👀 **Presence Indicators** - Know who's actively viewing the same list
 
 ## Tech Stack
 
@@ -18,12 +20,14 @@ A modern, mobile-first grocery list application built with a React frontend and 
 - **Vite** for fast development and building
 - **Material UI** for mobile-first components
 - **React Router** for navigation
+- **SignalR Client** for real-time communication
 
 ### Backend
 - **ASP.NET Core 9.0** with C#
 - **Entity Framework Core** with PostgreSQL
 - **JWT Authentication** with OIDC support
 - **RESTful API** design
+- **SignalR** for WebSocket-based real-time updates
 
 ### Infrastructure
 - **Docker** and **Docker Compose** for containerization
@@ -162,6 +166,44 @@ VITE_API_URL=http://localhost:5000/api
 - `PUT /api/grocerylists/{listId}/shares/{id}` - Update share permissions
 - `DELETE /api/grocerylists/{listId}/shares/{id}` - Remove share
 
+### Real-Time Communication (SignalR)
+- **Hub Endpoint**: `/hubs/list`
+- **Authentication**: JWT token via query string (`?access_token=...`)
+- **Events**:
+  - `JoinList(listId)` - Join a list room to receive updates
+  - `LeaveList(listId)` - Leave a list room
+  - `ItemAdded` - Notifies when an item is added
+  - `ItemUpdated` - Notifies when an item is updated
+  - `ItemBoughtStatusChanged` - Notifies when item bought status changes
+  - `ItemRemoved` - Notifies when an item is deleted
+  - `UserJoined` - Notifies when a user joins the list
+  - `UserLeft` - Notifies when a user leaves the list
+  - `ActiveUsers` - Sends list of currently active users
+
+## Real-Time Features
+
+K-Plista uses SignalR for real-time collaboration:
+
+### Instant Updates
+- Changes made by any user are immediately visible to all viewers
+- No manual refresh needed
+- Supports adding, updating, marking as bought, and deleting items
+
+### Presence Indicators
+- See who's currently viewing the same list
+- User avatars displayed in the app bar
+- Real-time join/leave notifications
+
+### Automatic Reconnection
+- Handles disconnections gracefully
+- Exponential backoff retry strategy
+- Automatically rejoins list rooms after reconnection
+
+### Security
+- Uses existing JWT authentication
+- Only authorized users can access list updates
+- Room-based isolation ensures users only see their own lists
+
 ## CI/CD
 
 The project includes GitHub Actions workflows for:
@@ -187,15 +229,17 @@ k-plista/
 │   │   ├── Controllers/      # API controllers
 │   │   ├── Data/             # Database context
 │   │   ├── DTOs/             # Data transfer objects
+│   │   ├── Hubs/             # SignalR hubs
 │   │   ├── Models/           # Domain models
 │   │   └── Program.cs        # Application entry point
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── components/       # Reusable React components
-│   │   ├── contexts/         # React contexts (Auth)
+│   │   ├── contexts/         # React contexts (Auth, SignalR)
+│   │   ├── hooks/            # Custom React hooks
 │   │   ├── pages/            # Page components
-│   │   ├── services/         # API services
+│   │   ├── services/         # API services and SignalR client
 │   │   ├── types/            # TypeScript types
 │   │   └── App.tsx           # Main app component
 │   ├── Dockerfile
