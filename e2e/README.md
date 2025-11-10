@@ -104,9 +104,8 @@ docker-compose down
 
 ### Locally (Development Mode)
 
-1. Ensure backend and frontend are running:
-   - Backend on http://localhost:5000
-   - Frontend on http://localhost
+1. Ensure the application is running:
+   - Application (backend + frontend) on http://localhost
 
 2. Run the tests:
 ```bash
