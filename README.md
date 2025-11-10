@@ -45,19 +45,29 @@ A modern, mobile-first grocery list application built with a React frontend and 
 
 The easiest way to run K-Plista is using the published Docker image:
 
-1. Download the example `docker-compose.yml` file or create one manually (see `docker-compose.example.yml` in the repository):
+1. Download the example files:
 ```bash
+# Download docker-compose example
 wget https://raw.githubusercontent.com/twids/k-plista/main/docker-compose.example.yml -O docker-compose.yml
-# Or use curl:
-# curl -o docker-compose.yml https://raw.githubusercontent.com/twids/k-plista/main/docker-compose.example.yml
+
+# Download .env example and configure it
+wget https://raw.githubusercontent.com/twids/k-plista/main/.env.example -O .env
+# Edit .env and set your JWT_SECRET and other sensitive values
 ```
 
-2. Start the application:
+2. Configure your environment variables (important for production):
+```bash
+# Edit .env file and update at minimum:
+# - JWT_SECRET: A strong secret key (32+ characters)
+# - POSTGRES_PASSWORD: A secure database password
+```
+
+3. Start the application:
 ```bash
 docker compose up -d
 ```
 
-3. Access the application at http://localhost
+4. Access the application at http://localhost
 
 #### Building from Source
 

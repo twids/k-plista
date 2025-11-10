@@ -25,9 +25,10 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: "Host=postgres;Database=kplista;Username=postgres;Password=postgres"
-      Jwt__Secret: "your-secret-key-min-32-characters-long-for-security-please-change-in-production"
-      Jwt__Issuer: "kplista-api"
-      Jwt__Audience: "kplista-app"
+      # IMPORTANT: Change these secrets in production! Use environment variables or .env file
+      Jwt__Secret: "${JWT_SECRET:-your-secret-key-min-32-characters-long-for-security-please-change-in-production}"
+      Jwt__Issuer: "${JWT_ISSUER:-kplista-api}"
+      Jwt__Audience: "${JWT_AUDIENCE:-kplista-app}"
     ports:
       - "80:8080"
     depends_on:
