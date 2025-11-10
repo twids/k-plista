@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using KPlista.Api.Models;
+using Koplista.Api.Models;
 
-namespace KPlista.Api.Data;
+namespace Koplista.Api.Data;
 
-public class KPlistaDbContext : DbContext
+public class KoplistaDbContext : DbContext
 {
-    public KPlistaDbContext(DbContextOptions<KPlistaDbContext> options) : base(options)
+    public KoplistaDbContext(DbContextOptions<KoplistaDbContext> options) : base(options)
     {
     }
 

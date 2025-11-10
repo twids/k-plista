@@ -1,7 +1,7 @@
 # SignalR Implementation Summary
 
 ## Overview
-Successfully implemented SignalR for real-time list feedback and presence indicators in the K-Plista grocery list application.
+Successfully implemented SignalR for real-time list feedback and presence indicators in the Koplista grocery list application.
 
 ## Implementation Status: ✅ COMPLETE
 

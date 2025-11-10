@@ -1,4 +1,4 @@
-namespace KPlista.Api.DTOs;
+namespace Koplista.Api.DTOs;
 
 public record UserDto(
     Guid Id,

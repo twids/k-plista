@@ -3,9 +3,9 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: kplista-postgres
+    container_name: koplista-postgres
     environment:
-      POSTGRES_DB: kplista
+      POSTGRES_DB: koplista
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -22,15 +22,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: kplista-app
+    container_name: koplista-app
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Database=kplista;Username=postgres;Password=postgres"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Database=koplista;Username=postgres;Password=postgres"
       # IMPORTANT: Change these secrets in production! Use environment variables or .env file
       Jwt__Secret: "${JWT_SECRET:-your-secret-key-min-32-characters-long-for-security-please-change-in-production}"
-      Jwt__Issuer: "${JWT_ISSUER:-kplista-api}"
-      Jwt__Audience: "${JWT_AUDIENCE:-kplista-app}"
+      Jwt__Issuer: "${JWT_ISSUER:-koplista-api}"
+      Jwt__Audience: "${JWT_AUDIENCE:-koplista-app}"
     ports:
       - "80:8080"
     depends_on:

@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using KPlista.Api.Data;
-using KPlista.Api.Hubs;
+using Koplista.Api.Data;
+using Koplista.Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,7 +36,7 @@ builder.Services.AddCors(options =>
 // Configure Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Host=localhost;Database=kplista;Username=postgres;Password=postgres";
-builder.Services.AddDbContext<KPlistaDbContext>(options =>
+builder.Services.AddDbContext<KoplistaDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // Configure Authentication
@@ -126,7 +126,7 @@ app.MapFallbackToFile("index.html");
 // Apply database migrations on startup
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<KPlistaDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<KoplistaDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
     try

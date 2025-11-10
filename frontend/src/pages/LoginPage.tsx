@@ -41,7 +41,7 @@ export const LoginPage = () => {
           <Stack spacing={3} alignItems="center">
             <ShoppingCartIcon sx={{ fontSize: 64, color: 'primary.main' }} />
             <Typography variant="h4" component="h1" gutterBottom>
-              K-Plista
+              Koplista
             </Typography>
             <Typography variant="body1" color="text.secondary" textAlign="center">
               Your smart grocery list companion. Sign in to get started.

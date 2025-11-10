@@ -2,21 +2,21 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using KPlista.Api.Data;
-using KPlista.Api.DTOs;
-using KPlista.Api.Models;
+using Koplista.Api.Data;
+using Koplista.Api.DTOs;
+using Koplista.Api.Models;
 using System.Security.Claims;
 
-namespace KPlista.Api.Controllers;
+namespace Koplista.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly KPlistaDbContext _context;
+    private readonly KoplistaDbContext _context;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger)
+    public AuthController(KoplistaDbContext context, ILogger<AuthController> logger)
     {
         _context = context;
         _logger = logger;

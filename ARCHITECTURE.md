@@ -1,4 +1,4 @@
-# K-Plista Architecture Overview
+# Koplista Architecture Overview
 
 ## System Architecture
 
@@ -79,7 +79,7 @@
 │  └───────────────────────────────────┘ │
 │  ┌───────────────────────────────────┐ │
 │  │  Data Layer                       │ │
-│  │  • KPlistaDbContext (EF Core)     │ │
+│  │  • KoplistaDbContext (EF Core)     │ │
 │  │  • Migrations                     │ │
 │  └───────────────────────────────────┘ │
 │  ┌───────────────────────────────────┐ │

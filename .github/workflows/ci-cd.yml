@@ -32,11 +32,11 @@ jobs:
       
       - name: Build Backend
         run: |
-          dotnet restore backend/KPlista.Api/KPlista.Api.csproj
-          dotnet build backend/KPlista.Api/KPlista.Api.csproj --configuration Release --no-restore
+          dotnet restore backend/Koplista.Api/Koplista.Api.csproj
+          dotnet build backend/Koplista.Api/Koplista.Api.csproj --configuration Release --no-restore
       
       - name: Test Backend
-        run: dotnet test backend/KPlista.Api/KPlista.Api.csproj --no-build --verbosity normal --configuration Release
+        run: dotnet test backend/Koplista.Api/Koplista.Api.csproj --no-build --verbosity normal --configuration Release
       
       - name: Build Frontend
         working-directory: frontend

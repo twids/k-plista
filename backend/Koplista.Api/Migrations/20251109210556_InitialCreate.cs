@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace KPlista.Api.Migrations
+namespace Koplista.Api.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

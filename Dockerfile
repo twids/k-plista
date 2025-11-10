@@ -20,17 +20,17 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS backend-build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
-COPY backend/KPlista.Api/KPlista.Api.csproj backend/KPlista.Api/
-RUN dotnet restore "backend/KPlista.Api/KPlista.Api.csproj"
+COPY backend/Koplista.Api/Koplista.Api.csproj backend/Koplista.Api/
+RUN dotnet restore "backend/Koplista.Api/Koplista.Api.csproj"
 
 # Copy everything else and build
-COPY backend/KPlista.Api/ backend/KPlista.Api/
-WORKDIR "/src/backend/KPlista.Api"
-RUN dotnet build "KPlista.Api.csproj" -c Release -o /app/build
+COPY backend/Koplista.Api/ backend/Koplista.Api/
+WORKDIR "/src/backend/Koplista.Api"
+RUN dotnet build "Koplista.Api.csproj" -c Release -o /app/build
 
 # Publish backend
 FROM backend-build AS publish
-RUN dotnet publish "KPlista.Api.csproj" -c Release -o /app/publish
+RUN dotnet publish "Koplista.Api.csproj" -c Release -o /app/publish
 
 # Final stage - backend serving frontend
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
@@ -43,4 +43,4 @@ COPY --from=publish /app/publish .
 COPY --from=frontend-build /app/frontend/dist ./wwwroot
 
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "KPlista.Api.dll"]
+ENTRYPOINT ["dotnet", "Koplista.Api.dll"]

@@ -1,6 +1,6 @@
 # SignalR Testing Guide
 
-This document provides guidance for testing the real-time SignalR features in K-Plista.
+This document provides guidance for testing the real-time SignalR features in Koplista.
 
 ## Prerequisites
 - Two or more browser windows/devices

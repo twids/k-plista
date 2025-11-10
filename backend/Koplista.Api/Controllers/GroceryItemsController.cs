@@ -2,24 +2,24 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
-using KPlista.Api.Data;
-using KPlista.Api.DTOs;
-using KPlista.Api.Models;
-using KPlista.Api.Hubs;
+using Koplista.Api.Data;
+using Koplista.Api.DTOs;
+using Koplista.Api.Models;
+using Koplista.Api.Hubs;
 using System.Security.Claims;
 
-namespace KPlista.Api.Controllers;
+namespace Koplista.Api.Controllers;
 
 [ApiController]
 [Route("api/grocerylists/{listId}/items")]
 [Authorize]
 public class GroceryItemsController : ControllerBase
 {
-    private readonly KPlistaDbContext _context;
+    private readonly KoplistaDbContext _context;
     private readonly ILogger<GroceryItemsController> _logger;
     private readonly IHubContext<ListHub> _hubContext;
 
-    public GroceryItemsController(KPlistaDbContext context, ILogger<GroceryItemsController> logger, IHubContext<ListHub> hubContext)
+    public GroceryItemsController(KoplistaDbContext context, ILogger<GroceryItemsController> logger, IHubContext<ListHub> hubContext)
     {
         _context = context;
         _logger = logger;
