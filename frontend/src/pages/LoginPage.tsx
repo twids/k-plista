@@ -15,7 +15,7 @@ export const LoginPage = () => {
     try {
       const mockGoogleUser = {
         provider: 'Google',
-        externalUserId: 'google-' + Math.random().toString(36).substring(7),
+        externalUserId: 'google-' + crypto.randomUUID(),
         email: 'demo.user@gmail.com',
         name: 'Demo User',
         profilePictureUrl: 'https://via.placeholder.com/150'
@@ -41,7 +41,7 @@ export const LoginPage = () => {
     try {
       const mockFacebookUser = {
         provider: 'Facebook',
-        externalUserId: 'facebook-' + Math.random().toString(36).substring(7),
+        externalUserId: 'facebook-' + crypto.randomUUID(),
         email: 'demo.user@facebook.com',
         name: 'Demo User',
         profilePictureUrl: 'https://via.placeholder.com/150'
@@ -67,7 +67,7 @@ export const LoginPage = () => {
     try {
       const mockAppleUser = {
         provider: 'Apple',
-        externalUserId: 'apple-' + Math.random().toString(36).substring(7),
+        externalUserId: 'apple-' + crypto.randomUUID(),
         email: 'demo.user@icloud.com',
         name: 'Demo User',
         profilePictureUrl: 'https://via.placeholder.com/150'
