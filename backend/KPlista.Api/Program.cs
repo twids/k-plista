@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using KPlista.Api.Data;
+using KPlista.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +68,9 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// Register JWT service
+builder.Services.AddSingleton<IJwtService, JwtService>();
 
 var app = builder.Build();
 
