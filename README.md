@@ -28,8 +28,8 @@ A modern, mobile-first grocery list application built with a React frontend and 
 ### Infrastructure
 - **Docker** and **Docker Compose** for containerization
 - **PostgreSQL 16** for database
-- **Nginx** for frontend serving and API proxying
-- **GitHub Actions** for CI/CD
+- **ASP.NET Core** serving frontend static files
+- **GitHub Actions** for CI/CD with automated Docker image publishing
 
 ## Getting Started
 
@@ -40,6 +40,43 @@ A modern, mobile-first grocery list application built with a React frontend and 
 - Node.js 20+ (for local development)
 
 ### Quick Start with Docker
+
+#### Using Pre-built Docker Image from GitHub Container Registry
+
+The easiest way to run K-Plista is using the published Docker image:
+
+1. Download the example files:
+```bash
+# Download docker-compose example (choose one of the following)
+wget https://raw.githubusercontent.com/twids/k-plista/main/docker-compose.example.yml -O docker-compose.yml
+# OR
+curl -o docker-compose.yml https://raw.githubusercontent.com/twids/k-plista/main/docker-compose.example.yml
+
+# Download .env example and configure it (choose one of the following)
+wget https://raw.githubusercontent.com/twids/k-plista/main/.env.example -O .env
+# OR
+curl -o .env https://raw.githubusercontent.com/twids/k-plista/main/.env.example
+
+# If you don't have wget or curl, you can manually download these files from:
+# https://github.com/twids/k-plista
+# Edit .env and set your JWT_SECRET and other sensitive values
+```
+
+2. Configure your environment variables (important for production):
+```bash
+# Edit .env file and update at minimum:
+# - JWT_SECRET: A strong secret key (32+ characters)
+# - POSTGRES_PASSWORD: A secure database password
+```
+
+3. Start the application:
+```bash
+docker compose up -d
+```
+
+4. Access the application at http://localhost
+
+#### Building from Source
 
 1. Clone the repository:
 ```bash
@@ -53,8 +90,8 @@ docker-compose up --build
 ```
 
 3. Access the application:
-   - Frontend: http://localhost
-   - Backend API: http://localhost:5000
+   - Application: http://localhost
+   - API endpoint: http://localhost/api
 
 ### Local Development
 
@@ -122,11 +159,58 @@ Update `backend/KPlista.Api/appsettings.json`:
 
 ### Frontend Configuration
 
-Create `frontend/.env`:
+Create `frontend/.env` for local development:
 
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
+
+**Note:** When running in Docker, the frontend is served by the backend and uses relative API paths, so no separate configuration is needed.
+
+## Docker Deployment
+
+### Published Docker Images
+
+The application is automatically built and published to GitHub Container Registry on every push to the main branch.
+
+- **Image:** `ghcr.io/twids/k-plista:latest`
+- **Architecture:** Multi-stage build combining frontend and backend into a single container
+- **Registry:** GitHub Container Registry (ghcr.io)
+
+### Pulling the Image
+
+```bash
+docker pull ghcr.io/twids/k-plista:latest
+```
+
+### Running the Container
+
+```bash
+docker run -p 80:8080 \
+  -e ConnectionStrings__DefaultConnection="Host=postgres;Database=kplista;Username=postgres;Password=postgres" \
+  -e Jwt__Secret="your-secret-key-min-32-characters-long" \
+  -e Jwt__Issuer="kplista-api" \
+  -e Jwt__Audience="kplista-app" \
+  ghcr.io/twids/k-plista:latest
+```
+
+### Docker Compose Example
+
+See the [Quick Start with Docker](#quick-start-with-docker) section above for a complete `docker-compose.yml` example.
+
+### Building Custom Images
+
+To build your own Docker image:
+
+```bash
+# From repository root
+docker build -t kplista:custom .
+```
+
+The Dockerfile uses a multi-stage build:
+1. **Stage 1:** Builds the React frontend with Node.js
+2. **Stage 2:** Builds the .NET backend
+3. **Stage 3:** Combines frontend static files (in `wwwroot`) with the backend runtime
 
 ## API Documentation
 
@@ -175,8 +259,10 @@ The project includes GitHub Actions workflows for:
 ### Full CI/CD (`ci-cd.yml`)
 - Runs on push to main branch
 - Builds and tests all components
-- Pushes Docker images to GitHub Container Registry
+- Builds unified Docker image (frontend + backend)
+- Pushes Docker image to GitHub Container Registry (`ghcr.io/twids/k-plista:latest`)
 - Runs security scanning with Trivy
+- Tags images with branch name and commit SHA for version tracking
 
 ## Project Structure
 
@@ -188,8 +274,9 @@ k-plista/
 │   │   ├── Data/             # Database context
 │   │   ├── DTOs/             # Data transfer objects
 │   │   ├── Models/           # Domain models
-│   │   └── Program.cs        # Application entry point
-│   └── Dockerfile
+│   │   ├── wwwroot/          # Static files (frontend build output in Docker)
+│   │   └── Program.cs        # Application entry point + static file serving
+│   └── Dockerfile            # Legacy backend-only Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── components/       # Reusable React components
@@ -198,10 +285,11 @@ k-plista/
 │   │   ├── services/         # API services
 │   │   ├── types/            # TypeScript types
 │   │   └── App.tsx           # Main app component
-│   ├── Dockerfile
-│   └── nginx.conf
+│   ├── Dockerfile            # Legacy frontend-only Dockerfile
+│   └── nginx.conf            # Legacy Nginx configuration
 ├── .github/
 │   └── workflows/            # GitHub Actions workflows
+├── Dockerfile                # Unified multi-stage Dockerfile (frontend + backend)
 └── docker-compose.yml        # Docker Compose configuration
 ```
 
