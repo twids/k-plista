@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -31,20 +31,20 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
   const [shares, setShares] = useState<ListShare[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (open && listId) {
-      loadShares();
-    }
-  }, [open, listId]);
-
-  const loadShares = async () => {
+  const loadShares = useCallback(async () => {
     try {
       const data = await listShareService.getAll(listId);
       setShares(data);
     } catch (error) {
       console.error('Failed to load shares:', error);
     }
-  };
+  }, [listId]);
+
+  useEffect(() => {
+    if (open && listId) {
+      loadShares();
+    }
+  }, [open, listId, loadShares]);
 
   const handleShare = async () => {
     if (!email.trim()) return;

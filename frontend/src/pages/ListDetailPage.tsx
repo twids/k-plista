@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -41,13 +41,7 @@ export const ListDetailPage = () => {
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [openGroupDialog, setOpenGroupDialog] = useState(false);
 
-  useEffect(() => {
-    if (listId) {
-      loadData();
-    }
-  }, [listId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!listId) return;
     
     try {
@@ -62,7 +56,13 @@ export const ListDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [listId]);
+
+  useEffect(() => {
+    if (listId) {
+      loadData();
+    }
+  }, [listId, loadData]);
 
   const handleToggleBought = async (item: GroceryItem) => {
     if (!listId) return;
