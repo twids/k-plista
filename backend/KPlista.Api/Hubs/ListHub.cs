@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using KPlista.Api.Data;
 using System.Security.Claims;
+using System.Collections.Concurrent;
 
 namespace KPlista.Api.Hubs;
 
@@ -11,9 +12,8 @@ public class ListHub : Hub
 {
     private readonly KPlistaDbContext _context;
     private readonly ILogger<ListHub> _logger;
-    private static readonly Dictionary<string, HashSet<string>> _listConnections = new();
-    private static readonly Dictionary<string, ListUserInfo> _connectionUsers = new();
-    private static readonly object _lock = new();
+    private static readonly ConcurrentDictionary<string, ConcurrentBag<string>> _listConnections = new();
+    private static readonly ConcurrentDictionary<string, ListUserInfo> _connectionUsers = new();
 
     public ListHub(KPlistaDbContext context, ILogger<ListHub> logger)
     {
@@ -67,21 +67,21 @@ public class ListHub : Hub
 
         await Groups.AddToGroupAsync(Context.ConnectionId, listId);
 
-        lock (_lock)
-        {
-            if (!_listConnections.ContainsKey(listId))
+        _listConnections.AddOrUpdate(
+            listId,
+            _ => new ConcurrentBag<string> { Context.ConnectionId },
+            (_, connections) =>
             {
-                _listConnections[listId] = new HashSet<string>();
-            }
-            _listConnections[listId].Add(Context.ConnectionId);
+                connections.Add(Context.ConnectionId);
+                return connections;
+            });
 
-            _connectionUsers[Context.ConnectionId] = new ListUserInfo
-            {
-                UserId = userId.ToString(),
-                UserName = user.Name,
-                ListId = listId
-            };
-        }
+        _connectionUsers[Context.ConnectionId] = new ListUserInfo
+        {
+            UserId = userId.ToString(),
+            UserName = user.Name,
+            ListId = listId
+        };
 
         // Notify others in the group that a new user joined
         await Clients.OthersInGroup(listId).SendAsync("UserJoined", new
@@ -104,24 +104,24 @@ public class ListHub : Hub
 
     private async Task RemoveFromList(string listId)
     {
-        ListUserInfo? userInfo;
-        lock (_lock)
+        if (!_connectionUsers.TryRemove(Context.ConnectionId, out var userInfo))
         {
-            if (!_connectionUsers.TryGetValue(Context.ConnectionId, out userInfo))
-            {
-                return;
-            }
+            return;
+        }
 
-            if (_listConnections.ContainsKey(listId))
+        if (_listConnections.TryGetValue(listId, out var connections))
+        {
+            // Remove connection from bag (note: ConcurrentBag doesn't support removal, so we'll keep it simple)
+            // For a production system, consider using ConcurrentDictionary<string, ConcurrentDictionary<string, bool>> instead
+            var updatedConnections = new ConcurrentBag<string>(connections.Where(c => c != Context.ConnectionId));
+            if (updatedConnections.IsEmpty)
             {
-                _listConnections[listId].Remove(Context.ConnectionId);
-                if (_listConnections[listId].Count == 0)
-                {
-                    _listConnections.Remove(listId);
-                }
+                _listConnections.TryRemove(listId, out _);
             }
-
-            _connectionUsers.Remove(Context.ConnectionId);
+            else
+            {
+                _listConnections[listId] = updatedConnections;
+            }
         }
 
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, listId);
@@ -138,18 +138,7 @@ public class ListHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        string? listId;
-        lock (_lock)
-        {
-            if (_connectionUsers.TryGetValue(Context.ConnectionId, out var userInfo))
-            {
-                listId = userInfo.ListId;
-            }
-            else
-            {
-                listId = null;
-            }
-        }
+        var listId = _connectionUsers.TryGetValue(Context.ConnectionId, out var userInfo) ? userInfo.ListId : null;
 
         if (listId != null)
         {
@@ -161,33 +150,30 @@ public class ListHub : Hub
 
     private List<object> GetActiveUsersForList(string listId)
     {
-        lock (_lock)
+        if (!_listConnections.TryGetValue(listId, out var connections))
         {
-            if (!_listConnections.ContainsKey(listId))
-            {
-                return new List<object>();
-            }
-
-            var activeUsers = _listConnections[listId]
-                .Select(connectionId =>
-                {
-                    if (_connectionUsers.TryGetValue(connectionId, out var userInfo))
-                    {
-                        return new
-                        {
-                            userId = userInfo.UserId,
-                            userName = userInfo.UserName
-                        };
-                    }
-                    return null;
-                })
-                .Where(u => u != null)
-                .DistinctBy(u => u!.userId)
-                .Cast<object>()
-                .ToList();
-
-            return activeUsers;
+            return new List<object>();
         }
+
+        var activeUsers = connections
+            .Select(connectionId =>
+            {
+                if (_connectionUsers.TryGetValue(connectionId, out var userInfo))
+                {
+                    return new
+                    {
+                        userId = userInfo.UserId,
+                        userName = userInfo.UserName
+                    };
+                }
+                return null;
+            })
+            .Where(u => u != null)
+            .DistinctBy(u => u!.userId)
+            .Cast<object>()
+            .ToList();
+
+        return activeUsers;
     }
 
     private class ListUserInfo

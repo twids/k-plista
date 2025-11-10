@@ -34,15 +34,18 @@ export const SignalRProvider: React.FC<SignalRProviderProps> = ({ children }) =>
         console.error('Failed to connect to SignalR:', err);
       });
 
-      // Poll connection state
-      const interval = setInterval(() => {
-        const state = signalRService.getConnectionState();
+      // Subscribe to connection state changes
+      const unsubscribe = signalRService.onStateChange((state) => {
         setConnectionState(state);
-        setIsConnected(signalRService.isConnected());
-      }, 1000);
+        setIsConnected(state === HubConnectionState.Connected);
+      });
+
+      // Set initial state
+      setConnectionState(signalRService.getConnectionState());
+      setIsConnected(signalRService.isConnected());
 
       return () => {
-        clearInterval(interval);
+        unsubscribe();
         // Disconnect when component unmounts or user logs out
         signalRService.disconnect();
       };

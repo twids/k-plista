@@ -133,8 +133,14 @@ export const ListDetailPage = () => {
     signalRService.onActiveUsers(handleActiveUsers);
 
     return () => {
-      // Clean up event handlers
-      signalRService.offAllHandlers();
+      // Clean up specific event handlers
+      signalRService.offItemAdded(handleItemAdded);
+      signalRService.offItemUpdated(handleItemUpdated);
+      signalRService.offItemBoughtStatusChanged(handleItemBoughtStatusChanged);
+      signalRService.offItemRemoved(handleItemRemoved);
+      signalRService.offUserJoined(handleUserJoined);
+      signalRService.offUserLeft(handleUserLeft);
+      signalRService.offActiveUsers(handleActiveUsers);
       // Leave the list room
       leaveList(listId).catch(err => console.error('Failed to leave list:', err));
       setActiveUsers([]);
