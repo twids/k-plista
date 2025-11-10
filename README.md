@@ -45,52 +45,16 @@ A modern, mobile-first grocery list application built with a React frontend and 
 
 The easiest way to run K-Plista is using the published Docker image:
 
-1. Create a `docker-compose.yml` file:
-```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: kplista-postgres
-    environment:
-      POSTGRES_DB: kplista
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  app:
-    image: ghcr.io/twids/k-plista:latest
-    container_name: kplista-app
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Database=kplista;Username=postgres;Password=postgres"
-      Jwt__Secret: "your-secret-key-min-32-characters-long-for-security-please-change-in-production"
-      Jwt__Issuer: "kplista-api"
-      Jwt__Audience: "kplista-app"
-    ports:
-      - "80:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
+1. Download the example `docker-compose.yml` file or create one manually (see `docker-compose.example.yml` in the repository):
+```bash
+wget https://raw.githubusercontent.com/twids/k-plista/main/docker-compose.example.yml -O docker-compose.yml
+# Or use curl:
+# curl -o docker-compose.yml https://raw.githubusercontent.com/twids/k-plista/main/docker-compose.example.yml
 ```
 
 2. Start the application:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 3. Access the application at http://localhost
