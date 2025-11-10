@@ -23,7 +23,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import LogoutIcon from '@mui/icons-material/Logout';
 import type { GroceryList } from '../types';
 import { groceryListService } from '../services/groceryListService';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { CreateListDialog } from '../components/CreateListDialog';
 
 export const ListsPage = () => {
