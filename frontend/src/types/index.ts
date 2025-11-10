@@ -78,3 +78,19 @@ export interface CreateListShareDto {
   sharedWithUserEmail: string;
   canEdit: boolean;
 }
+
+export interface ActiveUser {
+  userId: string;
+  userName: string;
+}
+
+export interface ItemBoughtStatusUpdate {
+  id: string;
+  isBought: boolean;
+  boughtAt?: string;
+  updatedAt: string;
+}
+
+export interface ItemRemovedUpdate {
+  id: string;
+}

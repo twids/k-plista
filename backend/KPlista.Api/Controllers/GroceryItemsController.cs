@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using KPlista.Api.Data;
 using KPlista.Api.DTOs;
 using KPlista.Api.Models;
+using KPlista.Api.Hubs;
 using System.Security.Claims;
 
 namespace KPlista.Api.Controllers;
@@ -15,11 +17,13 @@ public class GroceryItemsController : ControllerBase
 {
     private readonly KPlistaDbContext _context;
     private readonly ILogger<GroceryItemsController> _logger;
+    private readonly IHubContext<ListHub> _hubContext;
 
-    public GroceryItemsController(KPlistaDbContext context, ILogger<GroceryItemsController> logger)
+    public GroceryItemsController(KPlistaDbContext context, ILogger<GroceryItemsController> logger, IHubContext<ListHub> hubContext)
     {
         _context = context;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     private Guid GetCurrentUserId()
@@ -187,6 +191,9 @@ public class GroceryItemsController : ControllerBase
             item.BoughtAt
         );
 
+        // Broadcast to SignalR clients
+        await _hubContext.Clients.Group(listId.ToString()).SendAsync("ItemAdded", resultDto);
+
         return CreatedAtAction(nameof(GetGroceryItem), new { listId, id = item.Id }, resultDto);
     }
 
@@ -230,6 +237,27 @@ public class GroceryItemsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        // Broadcast to SignalR clients
+        var group = dto.GroupId.HasValue 
+            ? await _context.ItemGroups.FindAsync(dto.GroupId.Value)
+            : null;
+
+        var updatedDto = new GroceryItemDto(
+            item.Id,
+            item.Name,
+            item.Description,
+            item.Quantity,
+            item.Unit,
+            item.IsBought,
+            item.GroceryListId,
+            item.GroupId,
+            group?.Name,
+            item.CreatedAt,
+            item.UpdatedAt,
+            item.BoughtAt
+        );
+        await _hubContext.Clients.Group(listId.ToString()).SendAsync("ItemUpdated", updatedDto);
+
         return NoContent();
     }
 
@@ -258,6 +286,15 @@ public class GroceryItemsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        // Broadcast to SignalR clients
+        await _hubContext.Clients.Group(listId.ToString()).SendAsync("ItemBoughtStatusChanged", new
+        {
+            id = item.Id,
+            isBought = item.IsBought,
+            boughtAt = item.BoughtAt,
+            updatedAt = item.UpdatedAt
+        });
+
         return NoContent();
     }
 
@@ -282,6 +319,12 @@ public class GroceryItemsController : ControllerBase
 
         _context.GroceryItems.Remove(item);
         await _context.SaveChangesAsync();
+
+        // Broadcast to SignalR clients
+        await _hubContext.Clients.Group(listId.ToString()).SendAsync("ItemRemoved", new
+        {
+            id = item.Id
+        });
 
         return NoContent();
     }

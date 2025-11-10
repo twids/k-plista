@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
+import { SignalRProvider } from './contexts/SignalRContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
 import { ListsPage } from './pages/ListsPage';
@@ -69,7 +70,9 @@ function App() {
       <CssBaseline />
       <Router>
         <AuthProvider>
-          <AppRoutes />
+          <SignalRProvider>
+            <AppRoutes />
+          </SignalRProvider>
         </AuthProvider>
       </Router>
     </ThemeProvider>

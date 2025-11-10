@@ -19,9 +19,7 @@ services:
       retries: 5
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/twids/k-plista:latest
     container_name: kplista-app
     environment:
       ASPNETCORE_ENVIRONMENT: Production
