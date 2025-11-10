@@ -348,7 +348,9 @@ app.MapControllers();
 app.MapHub<ListHub>("/hubs/list");
 
 // Add health check endpoint (before SPA fallback to avoid being caught by it)
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+// Allow anonymous access to ensure it's always accessible for health checks
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
+   .AllowAnonymous();
 
 // SPA fallback - serve index.html for non-API routes (public)
 // This should come after MapControllers and health endpoint to not interfere with API routes
