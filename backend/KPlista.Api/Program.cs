@@ -11,30 +11,19 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-// Configure CORS for frontend
+// Configure CORS for local development only
+// In production, frontend is served from same origin so CORS is not needed
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        // In production, frontend is served from same origin, so less restrictive CORS is fine
-        // In development, allow local dev servers
-        if (builder.Environment.IsDevelopment())
-        {
-            policy.WithOrigins(
-                "http://localhost:5173", // Vite default port
-                "http://localhost:3000"
-            )
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
-        }
-        else
-        {
-            // Production: Allow same-origin requests
-            policy.AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader();
-        }
+        policy.WithOrigins(
+            "http://localhost:5173", // Vite default port
+            "http://localhost:3000"  // Alternative port
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
@@ -86,9 +75,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    // Only use CORS in development for local dev servers
+    app.UseCors("AllowFrontend");
 }
 
-app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
 // Serve static files from wwwroot
@@ -100,6 +90,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 // SPA fallback - serve index.html for non-API routes
+// This should come after MapControllers to not interfere with API routes
 app.MapFallbackToFile("index.html");
 
 // Apply database migrations on startup
