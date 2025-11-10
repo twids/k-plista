@@ -16,13 +16,16 @@ builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 
 // Configure CORS for frontend
+// Configure CORS for local development only
+// In production, frontend is served from same origin so CORS is not needed
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
             "http://localhost:5173", // Vite default port
-            "http://localhost:3000"
+            "http://localhost:3000"  // Alternative port
         )
         .AllowAnyMethod()
         .AllowAnyHeader()
@@ -95,15 +98,30 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    // Only use CORS in development for local dev servers
+    app.UseCors("AllowFrontend");
 }
 
-app.UseCors("AllowFrontend");
-app.UseHttpsRedirection();
+// HTTPS redirection only in development; Docker container runs on HTTP behind a reverse proxy
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+// Serve static files from wwwroot (public frontend assets - CSS, JS, images)
+// Static files are served before authentication as they should be publicly accessible
+app.UseStaticFiles();
+
+// Authentication and authorization apply to subsequent middleware (API controllers)
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<ListHub>("/hubs/list");
+
+// SPA fallback - serve index.html for non-API routes (public)
+// This should come after MapControllers to not interfere with API routes
+app.MapFallbackToFile("index.html");
 
 // Apply database migrations on startup
 using (var scope = app.Services.CreateScope())

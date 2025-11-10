@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Use relative path for API when served from same origin (production)
+// or explicit URL for local development
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 async function fetchApi<T>(
   endpoint: string,
