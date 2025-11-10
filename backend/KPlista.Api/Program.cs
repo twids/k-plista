@@ -221,6 +221,9 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Register JWT service
+builder.Services.AddSingleton<IJwtService, JwtService>();
+
 var app = builder.Build();
 
 // Apply forwarded headers BEFORE generating security headers or auth redirects

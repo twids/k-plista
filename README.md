@@ -297,6 +297,8 @@ The project includes GitHub Actions workflows for:
 - Builds backend and frontend
 - Runs tests and linting
 - Builds Docker images
+- **Runs comprehensive E2E tests** with Playwright
+- Blocks merge if any tests fail
 
 ### Full CI/CD (`ci-cd.yml`)
 - Runs on push to main branch
@@ -305,6 +307,41 @@ The project includes GitHub Actions workflows for:
 - Pushes Docker image to GitHub Container Registry (`ghcr.io/twids/k-plista:latest`)
 - Runs security scanning with Trivy
 - Tags images with branch name and commit SHA for version tracking
+
+## Testing
+
+### End-to-End Tests
+
+The project includes comprehensive E2E tests using Playwright that cover:
+
+- Authentication flows
+- Grocery list management (CRUD operations)
+- Grocery item management
+- Item grouping and organization
+- List sharing and collaboration
+- Complete user workflows
+
+**Running E2E Tests Locally:**
+
+```bash
+# Start the application
+docker-compose up -d
+
+# Install test dependencies
+cd e2e
+npm install
+
+# Run tests
+npm test
+
+# Run tests with UI
+npm run test:ui
+
+# View test report
+npm run test:report
+```
+
+For detailed testing documentation, see [e2e/README.md](e2e/README.md).
 
 ## Project Structure
 
@@ -317,6 +354,7 @@ k-plista/
 │   │   ├── DTOs/             # Data transfer objects
 │   │   ├── Hubs/             # SignalR hubs
 │   │   ├── Models/           # Domain models
+│   │   ├── Services/         # Business services (JWT, etc.)
 │   │   ├── wwwroot/          # Static files (frontend build output in Docker)
 │   │   └── Program.cs        # Application entry point + static file serving
 │   └── Dockerfile            # Legacy backend-only Dockerfile
@@ -331,6 +369,12 @@ k-plista/
 │   │   └── App.tsx           # Main app component
 │   ├── Dockerfile            # Legacy frontend-only Dockerfile
 │   └── nginx.conf            # Legacy Nginx configuration
+├── e2e/
+│   ├── tests/                # E2E test suites
+│   │   ├── helpers/          # Test utilities
+│   │   └── pages/            # Page Object Models
+│   ├── playwright.config.ts  # Playwright configuration
+│   └── README.md             # Testing documentation
 ├── .github/
 │   └── workflows/            # GitHub Actions workflows
 ├── Dockerfile                # Unified multi-stage Dockerfile (frontend + backend)
@@ -342,8 +386,11 @@ k-plista/
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+4. **Ensure all tests pass** (`cd e2e && npm test`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+**Note:** All PRs must pass E2E tests before merging. Tests run automatically in CI/CD.
 
 ## License
 
@@ -354,4 +401,5 @@ This project is licensed under the MIT License.
 - Built with React and Material UI
 - Powered by ASP.NET Core and Entity Framework
 - Containerized with Docker
+- Tested with Playwright
 
