@@ -16,13 +16,25 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-            "http://localhost:5173", // Vite default port
-            "http://localhost:3000"
-        )
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials();
+        // In production, frontend is served from same origin, so less restrictive CORS is fine
+        // In development, allow local dev servers
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.WithOrigins(
+                "http://localhost:5173", // Vite default port
+                "http://localhost:3000"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+        }
+        else
+        {
+            // Production: Allow same-origin requests
+            policy.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        }
     });
 });
 
@@ -78,10 +90,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
+
+// Serve static files from wwwroot
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// SPA fallback - serve index.html for non-API routes
+app.MapFallbackToFile("index.html");
 
 // Apply database migrations on startup
 using (var scope = app.Services.CreateScope())

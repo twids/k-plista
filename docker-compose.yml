@@ -18,11 +18,11 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
+  app:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: kplista-backend
+    container_name: kplista-app
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
@@ -31,21 +31,10 @@ services:
       Jwt__Issuer: "kplista-api"
       Jwt__Audience: "kplista-app"
     ports:
-      - "5000:8080"
+      - "80:8080"
     depends_on:
       postgres:
         condition: service_healthy
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: kplista-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
     restart: unless-stopped
 
 volumes:
