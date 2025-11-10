@@ -43,6 +43,4 @@ COPY --from=publish /app/publish .
 COPY --from=frontend-build /app/frontend/dist ./wwwroot
 
 EXPOSE 8080
-EXPOSE 8081
-
 ENTRYPOINT ["dotnet", "KPlista.Api.dll"]
