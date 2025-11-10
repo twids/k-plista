@@ -81,15 +81,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Serve static files from wwwroot
+// Serve static files from wwwroot (public frontend assets - CSS, JS, images)
+// Static files are served before authentication as they should be publicly accessible
 app.UseStaticFiles();
 
+// Authentication and authorization apply to subsequent middleware (API controllers)
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
-// SPA fallback - serve index.html for non-API routes
+// SPA fallback - serve index.html for non-API routes (public)
 // This should come after MapControllers to not interfere with API routes
 app.MapFallbackToFile("index.html");
 
