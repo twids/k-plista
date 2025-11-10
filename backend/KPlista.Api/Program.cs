@@ -354,15 +354,17 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = Dat
 // This should come after MapControllers and health endpoint to not interfere with API routes
 app.MapFallbackToFile("index.html");
 
-// Apply database migrations on startup
-using (var scope = app.Services.CreateScope())
+// Apply database migrations on startup (in background to not block app startup)
+_ = Task.Run(async () =>
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<KPlistaDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
     try
     {
-        db.Database.Migrate();
+        await db.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
     }
     catch (Npgsql.NpgsqlException ex)
     {
@@ -372,7 +374,11 @@ using (var scope = app.Services.CreateScope())
     {
         logger.LogError(ex, "An error occurred while applying database migrations.");
     }
-}
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An unexpected error occurred while applying database migrations.");
+    }
+});
 
 try
 {
