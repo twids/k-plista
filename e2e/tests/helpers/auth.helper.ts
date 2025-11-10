@@ -77,9 +77,12 @@ export class AuthHelper {
 
     const data = await response.json();
     
-    // For now, we'll use a simple token format since JWT isn't fully implemented
-    // In a real scenario, the API would return a JWT token
-    return data.token || `test-token-${user.externalUserId}`;
+    // The API now returns a JWT token in the response
+    if (!data.token) {
+      throw new Error('Login response did not include a token');
+    }
+    
+    return data.token;
   }
 
   /**

@@ -87,6 +87,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Add health check endpoint
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
 // Apply database migrations on startup
 using (var scope = app.Services.CreateScope())
 {
