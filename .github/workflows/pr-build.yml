@@ -102,8 +102,14 @@ jobs:
       - name: Start application with Docker Compose
         run: |
           docker compose up -d --build
+          echo "Waiting for containers to start..."
+          sleep 10
+          echo "Checking container status..."
+          docker compose ps
+          echo "Checking if app container is running..."
+          docker compose logs app | tail -100
           echo "Waiting for application to be ready..."
-          timeout 120 bash -c 'until curl -sf http://localhost/health > /dev/null 2>&1; do echo "Waiting for app..."; sleep 5; done'
+          timeout 120 bash -c 'until curl -sf http://localhost/health > /dev/null 2>&1; do echo "Waiting for app... ($(date +%T))"; docker compose ps app | grep -q Up || (echo "Container not running!" && docker compose logs app && exit 1); sleep 5; done'
           sleep 5
           echo "Application is ready"
       
