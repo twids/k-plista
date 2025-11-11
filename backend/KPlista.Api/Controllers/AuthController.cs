@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using KPlista.Api.Data;
 using KPlista.Api.DTOs;
 using KPlista.Api.Models;
+using KPlista.Api.Services;
 using System.Security.Claims;
 
 namespace KPlista.Api.Controllers;
@@ -15,11 +16,13 @@ public class AuthController : ControllerBase
 {
     private readonly KPlistaDbContext _context;
     private readonly ILogger<AuthController> _logger;
+    private readonly IJwtTokenService _jwtTokenService;
 
-    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger)
+    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtTokenService jwtTokenService)
     {
         _context = context;
         _logger = logger;
+        _jwtTokenService = jwtTokenService;
     }
 
     // GET: api/auth/me
@@ -51,7 +54,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/login
     [HttpPost("login")]
-    public async Task<ActionResult<UserDto>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequest request)
     {
         // This is a simplified version - in a real app, you would validate the token
         // with the external provider (Google, Facebook, Apple)
@@ -89,14 +92,18 @@ public class AuthController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        var dto = new UserDto(
+        // Generate JWT token
+        var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
+
+        var response = new LoginResponseDto(
             user.Id,
             user.Email,
             user.Name,
-            user.ProfilePictureUrl
+            user.ProfilePictureUrl,
+            token
         );
 
-        return Ok(dto);
+        return Ok(response);
     }
 
     // GET: api/auth/google
