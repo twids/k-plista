@@ -66,6 +66,20 @@ public class AuthController : ControllerBase
 
         if (user == null)
         {
+            // Check if a user with this email already exists with a different provider
+            var existingUserWithEmail = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == request.Email);
+            
+            if (existingUserWithEmail != null)
+            {
+                // User already exists with a different provider
+                return BadRequest(new 
+                { 
+                    error = "EmailAlreadyExists",
+                    message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
+                });
+            }
+
             // Create new user
             user = new User
             {
@@ -140,6 +154,20 @@ public class AuthController : ControllerBase
 
         if (user == null)
         {
+            // Check if a user with this email already exists with a different provider
+            var existingUserWithEmail = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+            
+            if (existingUserWithEmail != null)
+            {
+                // User already exists with a different provider
+                return BadRequest(new 
+                { 
+                    error = "EmailAlreadyExists",
+                    message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
+                });
+            }
+
             user = new User
             {
                 Id = Guid.NewGuid(),
@@ -200,6 +228,20 @@ public class AuthController : ControllerBase
 
         if (user == null)
         {
+            // Check if a user with this email already exists with a different provider
+            var existingUserWithEmail = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+            
+            if (existingUserWithEmail != null)
+            {
+                // User already exists with a different provider
+                return BadRequest(new 
+                { 
+                    error = "EmailAlreadyExists",
+                    message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
+                });
+            }
+
             user = new User
             {
                 Id = Guid.NewGuid(),
