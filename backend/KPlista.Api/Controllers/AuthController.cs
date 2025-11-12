@@ -66,34 +66,48 @@ public class AuthController : ControllerBase
 
         if (user == null)
         {
-            // Check if a user with this email already exists with a different provider
+            // Check if a user with this email already exists
             var existingUserWithEmail = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
             
             if (existingUserWithEmail != null)
             {
-                // User already exists with a different provider
-                return BadRequest(new 
-                { 
-                    error = "EmailAlreadyExists",
-                    message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
-                });
+                // User exists with this email
+                if (existingUserWithEmail.ExternalProvider != request.Provider)
+                {
+                    // User already exists with a different provider
+                    return BadRequest(new 
+                    { 
+                        error = "EmailAlreadyExists",
+                        message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
+                    });
+                }
+                
+                // User exists with same email and same provider - update their externalUserId
+                // This supports the case where the same button is used for both sign in and sign up
+                user = existingUserWithEmail;
+                user.ExternalUserId = request.ExternalUserId;
+                user.Name = request.Name;
+                user.ProfilePictureUrl = request.ProfilePictureUrl;
+                user.UpdatedAt = DateTime.UtcNow;
             }
-
-            // Create new user
-            user = new User
+            else
             {
-                Id = Guid.NewGuid(),
-                Email = request.Email,
-                Name = request.Name,
-                ProfilePictureUrl = request.ProfilePictureUrl,
-                ExternalProvider = request.Provider,
-                ExternalUserId = request.ExternalUserId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+                // Create new user
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = request.Email,
+                    Name = request.Name,
+                    ProfilePictureUrl = request.ProfilePictureUrl,
+                    ExternalProvider = request.Provider,
+                    ExternalUserId = request.ExternalUserId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
-            _context.Users.Add(user);
+                _context.Users.Add(user);
+            }
         }
         else
         {
@@ -154,32 +168,45 @@ public class AuthController : ControllerBase
 
         if (user == null)
         {
-            // Check if a user with this email already exists with a different provider
+            // Check if a user with this email already exists
             var existingUserWithEmail = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email);
             
             if (existingUserWithEmail != null)
             {
-                // User already exists with a different provider
-                return BadRequest(new 
-                { 
-                    error = "EmailAlreadyExists",
-                    message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
-                });
+                // User exists with this email
+                if (existingUserWithEmail.ExternalProvider != "Google")
+                {
+                    // User already exists with a different provider
+                    return BadRequest(new 
+                    { 
+                        error = "EmailAlreadyExists",
+                        message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
+                    });
+                }
+                
+                // User exists with same email and same provider - update their externalUserId
+                user = existingUserWithEmail;
+                user.ExternalUserId = externalUserId;
+                user.Name = name ?? user.Name;
+                user.UpdatedAt = DateTime.UtcNow;
             }
-
-            user = new User
+            else
             {
-                Id = Guid.NewGuid(),
-                Email = email,
-                Name = name ?? email,
-                ExternalProvider = "Google",
-                ExternalUserId = externalUserId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+                // Create new user
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = email,
+                    Name = name ?? email,
+                    ExternalProvider = "Google",
+                    ExternalUserId = externalUserId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
-            _context.Users.Add(user);
+                _context.Users.Add(user);
+            }
         }
         else
         {
@@ -228,32 +255,45 @@ public class AuthController : ControllerBase
 
         if (user == null)
         {
-            // Check if a user with this email already exists with a different provider
+            // Check if a user with this email already exists
             var existingUserWithEmail = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email);
             
             if (existingUserWithEmail != null)
             {
-                // User already exists with a different provider
-                return BadRequest(new 
-                { 
-                    error = "EmailAlreadyExists",
-                    message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
-                });
+                // User exists with this email
+                if (existingUserWithEmail.ExternalProvider != "Facebook")
+                {
+                    // User already exists with a different provider
+                    return BadRequest(new 
+                    { 
+                        error = "EmailAlreadyExists",
+                        message = $"An account with this email already exists. Please sign in with {existingUserWithEmail.ExternalProvider}."
+                    });
+                }
+                
+                // User exists with same email and same provider - update their externalUserId
+                user = existingUserWithEmail;
+                user.ExternalUserId = externalUserId;
+                user.Name = name ?? user.Name;
+                user.UpdatedAt = DateTime.UtcNow;
             }
-
-            user = new User
+            else
             {
-                Id = Guid.NewGuid(),
-                Email = email,
-                Name = name ?? email,
-                ExternalProvider = "Facebook",
-                ExternalUserId = externalUserId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+                // Create new user
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = email,
+                    Name = name ?? email,
+                    ExternalProvider = "Facebook",
+                    ExternalUserId = externalUserId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
-            _context.Users.Add(user);
+                _context.Users.Add(user);
+            }
         }
         else
         {
