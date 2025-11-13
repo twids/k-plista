@@ -163,7 +163,7 @@ public class AuthController : ControllerBase
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             // Handle race condition where unique constraint is violated
-            _logger.LogWarning(ex, "Unique constraint violation during user creation for email {Email}", request.Email);
+            _logger.LogWarning(ex, "Unique constraint violation during user creation");
             return BadRequest(new 
             { 
                 error = "EmailAlreadyExists",
@@ -236,7 +236,7 @@ public class AuthController : ControllerBase
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             // Handle race condition where unique constraint is violated
-            _logger.LogWarning(ex, "Unique constraint violation during user creation for email {Email}", email);
+            _logger.LogWarning(ex, "Unique constraint violation during user creation");
             return BadRequest(new 
             { 
                 error = "EmailAlreadyExists",
@@ -299,7 +299,7 @@ public class AuthController : ControllerBase
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             // Handle race condition where unique constraint is violated
-            _logger.LogWarning(ex, "Unique constraint violation during user creation for email {Email}", email);
+            _logger.LogWarning(ex, "Unique constraint violation during user creation");
             return BadRequest(new 
             { 
                 error = "EmailAlreadyExists",
