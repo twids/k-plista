@@ -1,7 +1,9 @@
 import * as signalR from '@microsoft/signalr';
 import type { GroceryItem, ActiveUser, ItemBoughtStatusUpdate, ItemRemovedUpdate } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Use relative path for SignalR hub when served from same origin (production)
+// or explicit URL for local development
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 const HUB_URL = API_URL.replace('/api', '/hubs/list');
 
 class SignalRService {
