@@ -6,6 +6,7 @@ using KPlista.Api.Data;
 using KPlista.Api.DTOs;
 using KPlista.Api.Models;
 using KPlista.Api.Services;
+using Npgsql;
 using System.Security.Claims;
 
 namespace KPlista.Api.Controllers;
@@ -25,6 +26,92 @@ public class AuthController : ControllerBase
         _jwtService = jwtService;
     }
 
+    /// <summary>
+    /// Finds or creates a user based on provider and email, handling sign in and sign up scenarios.
+    /// </summary>
+    private async Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null)
+    {
+        // First, try to find by provider + externalUserId (exact match)
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId);
+
+        if (user != null)
+        {
+            // Existing user found - update their info
+            user.Email = email;
+            user.Name = name;
+            if (profilePictureUrl != null)
+            {
+                user.ProfilePictureUrl = profilePictureUrl;
+            }
+            user.UpdatedAt = DateTime.UtcNow;
+            return user;
+        }
+
+        // Not found by provider+externalUserId, check if email exists
+        var existingUserWithEmail = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        if (existingUserWithEmail != null)
+        {
+            // Email exists - check if it's the same provider
+            if (existingUserWithEmail.ExternalProvider != provider)
+            {
+                // Different provider - this is an error condition
+                var providerName = string.IsNullOrWhiteSpace(existingUserWithEmail.ExternalProvider) 
+                    ? "the original provider" 
+                    : existingUserWithEmail.ExternalProvider;
+                throw new InvalidOperationException($"An account with this email already exists. Please sign in with {providerName}.");
+            }
+
+            // Same provider - update their externalUserId (supports sign in with same button)
+            existingUserWithEmail.ExternalUserId = externalUserId;
+            existingUserWithEmail.Name = name;
+            if (profilePictureUrl != null)
+            {
+                existingUserWithEmail.ProfilePictureUrl = profilePictureUrl;
+            }
+            existingUserWithEmail.UpdatedAt = DateTime.UtcNow;
+            return existingUserWithEmail;
+        }
+
+        // New user - create and add to context
+        var newUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            Name = name,
+            ProfilePictureUrl = profilePictureUrl,
+            ExternalProvider = provider,
+            ExternalUserId = externalUserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.Users.Add(newUser);
+
+        try
+        {
+            await _context.SaveChangesAsync();
+            return newUser;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is NpgsqlException pgEx && pgEx.SqlState == "23505")
+        {
+            // Unique constraint violation - retry once to handle race condition
+            _logger.LogWarning("Duplicate key error when creating user. Retrying...");
+            
+            // Reload the user that was created by another thread/request
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId);
+            
+            if (existingUser != null)
+            {
+                return existingUser;
+            }
+            
+            throw; // If still not found, re-throw the original exception
+        }
+    }
     // GET: api/auth/me
     [HttpGet("me")]
     [Authorize]

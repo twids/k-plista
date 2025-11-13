@@ -3,28 +3,89 @@ import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import AppleIcon from '@mui/icons-material/Apple';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import { authService } from '../services/authService';
+import { useAuth } from '../hooks/useAuth';
 
 export const LoginPage = () => {
-  const handleGoogleLogin = () => {
-    // In a real app, this would redirect to the Google OAuth flow
-    // For demo purposes, we'll create a mock token
-    const mockToken = 'mock-jwt-token';
-    localStorage.setItem('token', mockToken);
-    window.location.href = '/';
+  const { login } = useAuth();
+
+  const handleGoogleLogin = async () => {
+    // In a real app, this would integrate with Google OAuth
+    // For demo purposes, we'll create a mock user and call the backend
+    try {
+      const mockGoogleUser = {
+        provider: 'Google',
+        externalUserId: 'google-' + crypto.randomUUID(),
+        email: 'demo.user@gmail.com',
+        name: 'Demo User',
+        profilePictureUrl: 'https://via.placeholder.com/150'
+      };
+      
+      const response = await authService.login(
+        mockGoogleUser.provider,
+        mockGoogleUser.externalUserId,
+        mockGoogleUser.email,
+        mockGoogleUser.name,
+        mockGoogleUser.profilePictureUrl
+      );
+      
+      await login(mockGoogleUser.provider, response.token);
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
   };
 
-  const handleFacebookLogin = () => {
+  const handleFacebookLogin = async () => {
     // Similar implementation for Facebook
-    const mockToken = 'mock-jwt-token';
-    localStorage.setItem('token', mockToken);
-    window.location.href = '/';
+    try {
+      const mockFacebookUser = {
+        provider: 'Facebook',
+        externalUserId: 'facebook-' + crypto.randomUUID(),
+        email: 'demo.user@facebook.com',
+        name: 'Demo User',
+        profilePictureUrl: 'https://via.placeholder.com/150'
+      };
+      
+      const response = await authService.login(
+        mockFacebookUser.provider,
+        mockFacebookUser.externalUserId,
+        mockFacebookUser.email,
+        mockFacebookUser.name,
+        mockFacebookUser.profilePictureUrl
+      );
+      
+      await login(mockFacebookUser.provider, response.token);
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
   };
 
-  const handleAppleLogin = () => {
+  const handleAppleLogin = async () => {
     // Similar implementation for Apple
-    const mockToken = 'mock-jwt-token';
-    localStorage.setItem('token', mockToken);
-    window.location.href = '/';
+    try {
+      const mockAppleUser = {
+        provider: 'Apple',
+        externalUserId: 'apple-' + crypto.randomUUID(),
+        email: 'demo.user@icloud.com',
+        name: 'Demo User',
+        profilePictureUrl: 'https://via.placeholder.com/150'
+      };
+      
+      const response = await authService.login(
+        mockAppleUser.provider,
+        mockAppleUser.externalUserId,
+        mockAppleUser.email,
+        mockAppleUser.name,
+        mockAppleUser.profilePictureUrl
+      );
+      
+      await login(mockAppleUser.provider, response.token);
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
   };
 
   return (

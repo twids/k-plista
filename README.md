@@ -169,7 +169,7 @@ Create `frontend/.env` for local development:
 VITE_API_URL=http://localhost:5000/api
 ```
 
-**Note:** When running in Docker, the frontend is served by the backend and uses relative API paths, so no separate configuration is needed.
+**Note:** When running in Docker or production deployments, the frontend is served by the backend and uses relative paths for both API requests and SignalR connections, so no separate `VITE_API_URL` configuration is needed. The frontend will automatically connect to the same host it's served from.
 
 ## Docker Deployment
 

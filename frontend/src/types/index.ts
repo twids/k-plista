@@ -5,6 +5,15 @@ export interface User {
   profilePictureUrl?: string;
 }
 
+export interface LoginResponse {
+  id: string;
+  email: string;
+  name: string;
+  profilePictureUrl?: string;
+  token: string;
+}
+
+
 export interface GroceryList {
   id: string;
   name: string;
