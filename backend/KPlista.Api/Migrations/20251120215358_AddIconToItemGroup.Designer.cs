@@ -3,6 +3,7 @@ using System;
 using KPlista.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KPlista.Api.Migrations
 {
     [DbContext(typeof(KPlistaDbContext))]
-    partial class KPlistaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251120215358_AddIconToItemGroup")]
+    partial class AddIconToItemGroup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -67,7 +70,7 @@ namespace KPlista.Api.Migrations
 
                     b.HasIndex("GroupId");
 
-                    b.ToTable("GroceryItems", (string)null);
+                    b.ToTable("GroceryItems");
                 });
 
             modelBuilder.Entity("KPlista.Api.Models.GroceryList", b =>
@@ -97,7 +100,7 @@ namespace KPlista.Api.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("GroceryLists", (string)null);
+                    b.ToTable("GroceryLists");
                 });
 
             modelBuilder.Entity("KPlista.Api.Models.ItemGroup", b =>
@@ -134,7 +137,7 @@ namespace KPlista.Api.Migrations
 
                     b.HasIndex("GroceryListId");
 
-                    b.ToTable("ItemGroups", (string)null);
+                    b.ToTable("ItemGroups");
                 });
 
             modelBuilder.Entity("KPlista.Api.Models.ListShare", b =>
@@ -162,7 +165,7 @@ namespace KPlista.Api.Migrations
                     b.HasIndex("GroceryListId", "SharedWithUserId")
                         .IsUnique();
 
-                    b.ToTable("ListShares", (string)null);
+                    b.ToTable("ListShares");
                 });
 
             modelBuilder.Entity("KPlista.Api.Models.User", b =>
@@ -208,7 +211,7 @@ namespace KPlista.Api.Migrations
                     b.HasIndex("ExternalProvider", "ExternalUserId")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("KPlista.Api.Models.GroceryItem", b =>
