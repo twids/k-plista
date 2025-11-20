@@ -71,6 +71,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          tags: kplista-app:pr-${{ github.event.pull_request.number }}
+          tags: koplista-app:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
