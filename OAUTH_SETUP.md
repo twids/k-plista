@@ -23,7 +23,7 @@
 5. **Konfigurera Authorized redirect URIs**
    Eftersom vi nu explicit sätter `CallbackPath = "/api/auth/google-callback"` i `Program.cs`, ska du lägga till exakt den routen (med rätt schema och port) i Google Console.
 
-   Lokal utveckling (HTTPS och HTTP profiler):
+   Lokal utveckling (HTTPS och HTTP profil):
    ```
    https://localhost:7097/api/auth/google-callback
    http://localhost:5157/api/auth/google-callback
