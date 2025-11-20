@@ -1,4 +1,4 @@
-# K-Plista
+# Koplista
 
 A modern, mobile-first grocery list application built with a React frontend and .NET backend.
 
@@ -47,7 +47,7 @@ A modern, mobile-first grocery list application built with a React frontend and 
 
 #### Using Pre-built Docker Image from GitHub Container Registry
 
-The easiest way to run K-Plista is using the published Docker image:
+The easiest way to run Koplista is using the published Docker image:
 
 1. Download the example files:
 ```bash
@@ -266,7 +266,7 @@ The Dockerfile uses a multi-stage build:
 
 ## Real-Time Features
 
-K-Plista uses SignalR for real-time collaboration:
+Koplista uses SignalR for real-time collaboration:
 
 ### Instant Updates
 - Changes made by any user are immediately visible to all viewers

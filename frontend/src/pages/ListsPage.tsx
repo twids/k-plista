@@ -101,7 +101,7 @@ export const ListsPage = () => {
         <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
           <ShoppingCartIcon sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            K-Plista
+            Koplista
           </Typography>
           <IconButton color="inherit" onClick={handleLogout}>
             <LogoutIcon />
