@@ -3,11 +3,8 @@ import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import AppleIcon from '@mui/icons-material/Apple';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import { authService } from '../services/authService';
-import { useAuth } from '../hooks/useAuth';
 
 export const LoginPage = () => {
-  const { login } = useAuth();
 
   const handleGoogleLogin = () => {
     // Redirect to backend Google OAuth endpoint
