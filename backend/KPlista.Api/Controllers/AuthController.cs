@@ -197,17 +197,19 @@ public class AuthController : ControllerBase
         var result = await HttpContext.AuthenticateAsync("Google");
         if (!result.Succeeded)
         {
-            return Unauthorized();
+            // Redirect to login page with error
+            return Redirect("/?error=google_auth_failed");
         }
 
         var claims = result.Principal?.Claims;
         var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
         var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
         var externalUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var pictureUrl = claims?.FirstOrDefault(c => c.Type == "picture")?.Value;
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
-            return BadRequest("Invalid user information");
+            return Redirect("/?error=invalid_user_data");
         }
 
         try
@@ -216,32 +218,30 @@ public class AuthController : ControllerBase
                 "Google",
                 externalUserId,
                 email,
-                name ?? email
+                name ?? email,
+                pictureUrl
             );
 
             await _context.SaveChangesAsync();
 
-            // In a real app, you would create a JWT token here
-            return Ok(new { userId = user.Id, email = user.Email, name = user.Name });
+            // Generate JWT token
+            var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
+
+            // Redirect to frontend with token as URL parameter (temporary solution)
+            // In production, consider using secure cookies or a more secure method
+            return Redirect($"/?token={token}&login_success=true");
         }
         catch (InvalidOperationException ex)
         {
             // Handle email already exists with different provider
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = ex.Message
-            });
+            _logger.LogError(ex, "Email already exists with different provider");
+            return Redirect($"/?error=email_exists&message={Uri.EscapeDataString(ex.Message)}");
         }
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             // Handle race condition where unique constraint is violated
             _logger.LogWarning(ex, "Unique constraint violation during user creation");
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = "An account with this email already exists. Please try signing in again."
-            });
+            return Redirect("/?error=email_exists&message=An+account+with+this+email+already+exists");
         }
     }
 
@@ -260,17 +260,18 @@ public class AuthController : ControllerBase
         var result = await HttpContext.AuthenticateAsync("Facebook");
         if (!result.Succeeded)
         {
-            return Unauthorized();
+            return Redirect("/?error=facebook_auth_failed");
         }
 
         var claims = result.Principal?.Claims;
         var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
         var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
         var externalUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var pictureUrl = claims?.FirstOrDefault(c => c.Type == "picture")?.Value;
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
-            return BadRequest("Invalid user information");
+            return Redirect("/?error=invalid_user_data");
         }
 
         try
@@ -279,32 +280,26 @@ public class AuthController : ControllerBase
                 "Facebook",
                 externalUserId,
                 email,
-                name ?? email
+                name ?? email,
+                pictureUrl
             );
 
             await _context.SaveChangesAsync();
 
-            // In a real app, you would create a JWT token here
-            return Ok(new { userId = user.Id, email = user.Email, name = user.Name });
+            // Generate JWT token
+            var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
+
+            return Redirect($"/?token={token}&login_success=true");
         }
         catch (InvalidOperationException ex)
         {
-            // Handle email already exists with different provider
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = ex.Message
-            });
+            _logger.LogError(ex, "Email already exists with different provider");
+            return Redirect($"/?error=email_exists&message={Uri.EscapeDataString(ex.Message)}");
         }
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
-            // Handle race condition where unique constraint is violated
             _logger.LogWarning(ex, "Unique constraint violation during user creation");
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = "An account with this email already exists. Please try signing in again."
-            });
+            return Redirect("/?error=email_exists&message=An+account+with+this+email+already+exists");
         }
     }
 }
