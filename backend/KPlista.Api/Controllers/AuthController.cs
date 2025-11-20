@@ -251,6 +251,7 @@ public class AuthController : ControllerBase
     public IActionResult LoginFacebook()
     {
         // Explicit callback path defined in Program.cs (options.CallbackPath)
+        // Challenge without custom RedirectUri; callback endpoint handles final redirect to frontend
         return Challenge(new AuthenticationProperties(), "Facebook");
     }
 
