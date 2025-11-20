@@ -1,4 +1,4 @@
-# K-Plista Architecture Overview
+# Koplista Architecture Overview
 
 ## System Architecture
 

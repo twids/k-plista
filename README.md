@@ -1,4 +1,4 @@
-# K-Plista
+# Koplista
 
 A modern, mobile-first grocery list application built with a React frontend and .NET backend.
 
@@ -47,7 +47,7 @@ A modern, mobile-first grocery list application built with a React frontend and 
 
 #### Using Pre-built Docker Image from GitHub Container Registry
 
-The easiest way to run K-Plista is using the published Docker image:
+The easiest way to run Koplista is using the published Docker image:
 
 1. Download the example files:
 ```bash
@@ -124,8 +124,8 @@ The frontend will be available at `http://localhost:5173`
 
 For local development, ensure PostgreSQL is running:
 ```bash
-docker run -d --name kplista-postgres \
-  -e POSTGRES_DB=kplista \
+docker run -d --name koplista-postgres \
+  -e POSTGRES_DB=koplista \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 \
@@ -141,12 +141,12 @@ Update `backend/KPlista.Api/appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Database=kplista;Username=postgres;Password=postgres"
+    "DefaultConnection": "Host=localhost;Database=koplista;Username=postgres;Password=postgres"
   },
   "Jwt": {
     "Secret": "your-secret-key-here",
-    "Issuer": "kplista-api",
-    "Audience": "kplista-app"
+    "Issuer": "koplista-api",
+    "Audience": "koplista-app"
   },
   "Authentication": {
     "Google": {
@@ -191,10 +191,10 @@ docker pull ghcr.io/twids/k-plista:latest
 
 ```bash
 docker run -p 80:8080 \
-  -e ConnectionStrings__DefaultConnection="Host=postgres;Database=kplista;Username=postgres;Password=postgres" \
+  -e ConnectionStrings__DefaultConnection="Host=postgres;Database=koplista;Username=postgres;Password=postgres" \
   -e Jwt__Secret="your-secret-key-min-32-characters-long" \
-  -e Jwt__Issuer="kplista-api" \
-  -e Jwt__Audience="kplista-app" \
+  -e Jwt__Issuer="koplista-api" \
+  -e Jwt__Audience="koplista-app" \
   ghcr.io/twids/k-plista:latest
 ```
 
@@ -208,7 +208,7 @@ To build your own Docker image:
 
 ```bash
 # From repository root
-docker build -t kplista:custom .
+docker build -t koplista:custom .
 ```
 
 The Dockerfile uses a multi-stage build:
@@ -266,7 +266,7 @@ The Dockerfile uses a multi-stage build:
 
 ## Real-Time Features
 
-K-Plista uses SignalR for real-time collaboration:
+Koplista uses SignalR for real-time collaboration:
 
 ### Instant Updates
 - Changes made by any user are immediately visible to all viewers

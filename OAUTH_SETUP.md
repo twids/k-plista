@@ -18,7 +18,7 @@
    - Gå till "APIs & Services" > "Credentials"
    - Klicka "Create Credentials" > "OAuth client ID"
    - Välj "Web application"
-   - Ge det ett namn (t.ex. "K-Plista Web")
+   - Ge det ett namn (t.ex. "Koplista Web")
 
 5. **Konfigurera Authorized redirect URIs**
    Eftersom vi nu explicit sätter `CallbackPath = "/api/auth/google-callback"` i `Program.cs`, ska du lägga till exakt den routen (med rätt schema och port) i Google Console.
