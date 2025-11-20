@@ -4,10 +4,12 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Koplista.Api.Data;
 using Koplista.Api.Hubs;
+using Koplista.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();

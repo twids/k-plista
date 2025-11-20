@@ -5,6 +5,15 @@ export interface User {
   profilePictureUrl?: string;
 }
 
+export interface LoginResponse {
+  id: string;
+  email: string;
+  name: string;
+  profilePictureUrl?: string;
+  token: string;
+}
+
+
 export interface GroceryList {
   id: string;
   name: string;
@@ -36,6 +45,7 @@ export interface GroceryItem {
 export interface ItemGroup {
   id: string;
   name: string;
+  icon?: string;
   color?: string;
   sortOrder: number;
   groceryListId: string;
@@ -70,6 +80,7 @@ export interface CreateGroceryItemDto {
 
 export interface CreateItemGroupDto {
   name: string;
+  icon?: string;
   color?: string;
   sortOrder: number;
 }
