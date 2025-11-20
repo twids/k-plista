@@ -186,8 +186,9 @@ public class AuthController : ControllerBase
     [HttpGet("google")]
     public IActionResult LoginGoogle()
     {
-        var properties = new AuthenticationProperties { RedirectUri = "/api/auth/google-callback" };
-        return Challenge(properties, "Google");
+        // Explicit callback path defined in Program.cs (options.CallbackPath)
+        // Challenge without custom RedirectUri; callback endpoint handles final redirect to frontend
+        return Challenge(new AuthenticationProperties(), "Google");
     }
 
     // GET: api/auth/google-callback
@@ -249,8 +250,8 @@ public class AuthController : ControllerBase
     [HttpGet("facebook")]
     public IActionResult LoginFacebook()
     {
-        var properties = new AuthenticationProperties { RedirectUri = "/api/auth/facebook-callback" };
-        return Challenge(properties, "Facebook");
+        // Explicit callback path defined in Program.cs (options.CallbackPath)
+        return Challenge(new AuthenticationProperties(), "Facebook");
     }
 
     // GET: api/auth/facebook-callback

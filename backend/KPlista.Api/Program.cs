@@ -85,11 +85,15 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+    // Explicit callback path (override default /signin-google)
+    options.CallbackPath = "/api/auth/google-callback";
 })
 .AddFacebook(options =>
 {
     options.AppId = builder.Configuration["Authentication:Facebook:AppId"] ?? "";
     options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? "";
+    // Explicit callback path (override default /signin-facebook)
+    options.CallbackPath = "/api/auth/facebook-callback";
 });
 
 builder.Services.AddAuthorization();
