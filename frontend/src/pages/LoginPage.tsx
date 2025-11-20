@@ -9,86 +9,19 @@ import { useAuth } from '../hooks/useAuth';
 export const LoginPage = () => {
   const { login } = useAuth();
 
-  const handleGoogleLogin = async () => {
-    // In a real app, this would integrate with Google OAuth
-    // For demo purposes, we'll create a mock user and call the backend
-    try {
-      const randomNum = Math.floor(Math.random() * 1000);
-      const mockGoogleUser = {
-        provider: 'Google',
-        externalUserId: 'google-' + crypto.randomUUID(),
-        email: `google.user${randomNum}@gmail.com`,
-        name: `Google User ${randomNum}`,
-        profilePictureUrl: 'https://via.placeholder.com/150'
-      };
-      
-      const response = await authService.login(
-        mockGoogleUser.provider,
-        mockGoogleUser.externalUserId,
-        mockGoogleUser.email,
-        mockGoogleUser.name,
-        mockGoogleUser.profilePictureUrl
-      );
-      
-      await login(mockGoogleUser.provider, response.token);
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Login failed:', error);
-    }
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = '/api/auth/google';
   };
 
-  const handleFacebookLogin = async () => {
-    // Similar implementation for Facebook
-    try {
-      const randomNum = Math.floor(Math.random() * 1000);
-      const mockFacebookUser = {
-        provider: 'Facebook',
-        externalUserId: 'facebook-' + crypto.randomUUID(),
-        email: `facebook.user${randomNum}@facebook.com`,
-        name: `Facebook User ${randomNum}`,
-        profilePictureUrl: 'https://via.placeholder.com/150'
-      };
-      
-      const response = await authService.login(
-        mockFacebookUser.provider,
-        mockFacebookUser.externalUserId,
-        mockFacebookUser.email,
-        mockFacebookUser.name,
-        mockFacebookUser.profilePictureUrl
-      );
-      
-      await login(mockFacebookUser.provider, response.token);
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Login failed:', error);
-    }
+  const handleFacebookLogin = () => {
+    // Redirect to backend Facebook OAuth endpoint
+    window.location.href = '/api/auth/facebook';
   };
 
-  const handleAppleLogin = async () => {
-    // Similar implementation for Apple
-    try {
-      const randomNum = Math.floor(Math.random() * 1000);
-      const mockAppleUser = {
-        provider: 'Apple',
-        externalUserId: 'apple-' + crypto.randomUUID(),
-        email: `apple.user${randomNum}@icloud.com`,
-        name: `Apple User ${randomNum}`,
-        profilePictureUrl: 'https://via.placeholder.com/150'
-      };
-      
-      const response = await authService.login(
-        mockAppleUser.provider,
-        mockAppleUser.externalUserId,
-        mockAppleUser.email,
-        mockAppleUser.name,
-        mockAppleUser.profilePictureUrl
-      );
-      
-      await login(mockAppleUser.provider, response.token);
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Login failed:', error);
-    }
+  const handleAppleLogin = () => {
+    // Apple OAuth not configured in backend yet
+    alert('Apple login is not configured yet. Please use Google or Facebook.');
   };
 
   return (

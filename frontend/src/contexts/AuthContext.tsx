@@ -21,6 +21,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // Check if user is already logged in
     const initAuth = async () => {
+      // First, check for token in URL parameters (from OAuth callback)
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get('token');
+      const loginSuccess = urlParams.get('login_success');
+      const error = urlParams.get('error');
+      
+      if (error) {
+        // Clear error from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        console.error('OAuth error:', error);
+        const message = urlParams.get('message');
+        if (message) {
+          console.error('Error message:', decodeURIComponent(message));
+        }
+        setLoading(false);
+        return;
+      }
+      
+      if (tokenFromUrl && loginSuccess) {
+        // Clear the token from URL for security
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        try {
+          localStorage.setItem('token', tokenFromUrl);
+          const currentUser = await authService.getCurrentUser();
+          setUser(currentUser);
+          setLoading(false);
+          return;
+        } catch {
+          localStorage.removeItem('token');
+        }
+      }
+      
+      // Check for existing token in localStorage
       const token = localStorage.getItem('token');
       if (token) {
         try {
