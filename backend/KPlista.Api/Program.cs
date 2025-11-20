@@ -5,6 +5,7 @@ using System.Text;
 using KPlista.Api.Data;
 using KPlista.Api.Hubs;
 using KPlista.Api.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,22 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? "Host=localhost;Database=kplista;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<KPlistaDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+// Forwarded headers (reverse proxy TLS termination); DO NOT trust all proxies blindly.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    // Only what we need for HTTPS scheme + host reconstruction. Exclude XForwardedFor unless required.
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    // Limit how many entries are processed to mitigate header injection chains.
+    options.ForwardLimit = 1;
+    // Optional single trusted proxy IP from configuration (ReverseProxy:TrustedProxyIp)
+    var proxyIp = builder.Configuration["ReverseProxy:TrustedProxyIp"]; // e.g. 172.18.0.1 (Docker gateway) or load balancer IP
+    if (!string.IsNullOrWhiteSpace(proxyIp) && System.Net.IPAddress.TryParse(proxyIp, out var ipAddress))
+    {
+        options.KnownProxies.Add(ipAddress);
+    }
+    // For container networks you could alternatively add KnownNetworks.
+});
 
 // Configure Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "your-secret-key-min-32-characters-long-for-security";
@@ -107,6 +124,8 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Security Headers Middleware (placed early)
+// Apply forwarded headers BEFORE generating security headers or auth redirects
+app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
 app.Use(async (context, next) =>
 {
     var headers = context.Response.Headers;
