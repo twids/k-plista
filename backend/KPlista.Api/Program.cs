@@ -8,6 +8,12 @@ using KPlista.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Remove Server header (Kestrel) for security information disclosure hardening
+builder.WebHost.UseKestrel(options =>
+{
+    options.AddServerHeader = false;
+});
+
 // Add services to the container.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddControllers();
@@ -85,16 +91,70 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+    // Explicit callback path (override default /signin-google)
+    options.CallbackPath = "/api/auth/google-callback";
 })
 .AddFacebook(options =>
 {
     options.AppId = builder.Configuration["Authentication:Facebook:AppId"] ?? "";
     options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? "";
+    // Explicit callback path (override default /signin-facebook)
+    options.CallbackPath = "/api/auth/facebook-callback";
 });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// Security Headers Middleware (placed early)
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+
+    // Prevent MIME type sniffing
+    headers["X-Content-Type-Options"] = "nosniff";
+    // Clickjacking protection (allow same-origin if SPA might iframe internally; adjust if not needed)
+    headers["X-Frame-Options"] = "SAMEORIGIN";
+    // Basic XSS protection header (legacy, still adds defense in some older browsers)
+    headers["X-XSS-Protection"] = "0"; // Modern guidance: disable buggy legacy filter
+    // Referrer policy
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    // Permissions Policy (limit powerful APIs)
+    headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), accelerometer=(), gyroscope=(), magnetometer=(), browsing-topics=()";
+    // Cross-Origin Resource Policy (protect resources from being used by other origins)
+    headers["Cross-Origin-Resource-Policy"] = "same-origin";
+    // Cross-Origin Opener Policy & Embedder Policy for isolation (consider if using SharedArrayBuffer/web workers)
+    headers["Cross-Origin-Opener-Policy"] = "same-origin";
+    headers["Cross-Origin-Embedder-Policy"] = "require-corp"; // Ensure all cross-origin resources set CORP/CORS
+    // Content Security Policy (adjust as needed; current allows self assets, inline styles from bundlers, data images, websockets)
+    // If inline scripts/styles cause violation remove 'unsafe-inline' once hashes/nonces are implemented.
+    var csp = string.Join("; ", new[]
+    {
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'", // remove 'unsafe-inline' when possible
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self' ws: wss:", // SignalR/WebSocket
+        "frame-ancestors 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'"
+    });
+    headers["Content-Security-Policy"] = csp;
+
+    // Strict Transport Security (only if running behind HTTPS and not in development)
+    if (!context.Request.IsHttps && app.Environment.IsProduction())
+    {
+        // If reverse proxy terminates SSL, adjust to add this there instead.
+    }
+    else if (context.Request.IsHttps && app.Environment.IsProduction())
+    {
+        headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"; // 2 years
+    }
+
+    await next();
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

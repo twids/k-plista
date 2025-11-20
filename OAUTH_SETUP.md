@@ -21,13 +21,18 @@
    - Ge det ett namn (t.ex. "K-Plista Web")
 
 5. **Konfigurera Authorized redirect URIs**
-   För lokal utveckling, lägg till:
+   Eftersom vi nu explicit sätter `CallbackPath = "/api/auth/google-callback"` i `Program.cs`, ska du lägga till exakt den routen (med rätt schema och port) i Google Console.
+
+   Lokal utveckling (HTTPS och HTTP profil):
+   ```
+   https://localhost:7097/api/auth/google-callback
+   http://localhost:5157/api/auth/google-callback
+   ```
+   Docker (public port 80):
    ```
    http://localhost/api/auth/google-callback
-   http://localhost:80/api/auth/google-callback
    ```
-   
-   För produktion, lägg till din domän:
+   Produktion:
    ```
    https://yourdomain.com/api/auth/google-callback
    ```
@@ -71,7 +76,13 @@ Samma process för Facebook:
 1. Gå till https://developers.facebook.com/
 2. Skapa en app
 3. Konfigurera Facebook Login
-4. Lägg till redirect URI: `http://localhost/api/auth/facebook-callback`
+4. Lägg till samtliga relevanta redirect URIs (motsvarande Google):
+   ```
+   https://localhost:7097/api/auth/facebook-callback
+   http://localhost:5157/api/auth/facebook-callback
+   http://localhost/api/auth/facebook-callback
+   https://yourdomain.com/api/auth/facebook-callback
+   ```
 5. Uppdatera `appsettings.json` med App ID och App Secret
 
 ## 5. Testa
@@ -85,8 +96,9 @@ Samma process för Facebook:
 ## Felsökning
 
 **"Error 400: redirect_uri_mismatch"**
-- Kontrollera att redirect URI i Google Console matchar exakt
-- Se till att inte ha extra `/` på slutet
+- Kontrollera att redirect URI i konsolen matchar exakt den `CallbackPath` din applikation exponerar (schema, port, domän)
+- Undvik extra `/` på slutet
+- Om du nyligen ändrat `CallbackPath`, lägg till den nya varianten och ta bort gamla `/signin-google` eller `/signin-facebook` om de inte längre används
 
 **"invalid_client"**
 - Kontrollera Client ID och Client Secret
