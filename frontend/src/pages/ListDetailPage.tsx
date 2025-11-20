@@ -47,10 +47,10 @@ export const ListDetailPage = () => {
   const [openItemDialog, setOpenItemDialog] = useState(false);
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [openGroupDialog, setOpenGroupDialog] = useState(false);
+  const [prefillGroupId, setPrefillGroupId] = useState<string | undefined>(undefined);
 
   const loadData = useCallback(async () => {
     if (!listId) return;
-    
     try {
       const [itemsData, groupsData] = await Promise.all([
         groceryItemService.getAll(listId),
@@ -71,58 +71,21 @@ export const ListDetailPage = () => {
     }
   }, [listId, loadData]);
 
-  // SignalR connection and event handlers
+  // SignalR subscription
   useEffect(() => {
     if (!listId || !isConnected) return;
 
-    // Join the list room
     joinList(listId).catch(err => console.error('Failed to join list:', err));
 
-    // Set up event handlers
-    const handleItemAdded = (item: GroceryItem) => {
-      console.log('Item added:', item);
-      setItems(prevItems => [...prevItems, item]);
-    };
-
-    const handleItemUpdated = (item: GroceryItem) => {
-      console.log('Item updated:', item);
-      setItems(prevItems => prevItems.map(i => i.id === item.id ? item : i));
-    };
-
+    const handleItemAdded = (item: GroceryItem) => setItems(prev => [...prev, item]);
+    const handleItemUpdated = (item: GroceryItem) => setItems(prev => prev.map(i => i.id === item.id ? item : i));
     const handleItemBoughtStatusChanged = (data: ItemBoughtStatusUpdate) => {
-      console.log('Item bought status changed:', data);
-      setItems(prevItems => prevItems.map(item => 
-        item.id === data.id 
-          ? { ...item, isBought: data.isBought, boughtAt: data.boughtAt, updatedAt: data.updatedAt }
-          : item
-      ));
+      setItems(prev => prev.map(item => item.id === data.id ? { ...item, isBought: data.isBought, boughtAt: data.boughtAt, updatedAt: data.updatedAt } : item));
     };
-
-    const handleItemRemoved = (data: ItemRemovedUpdate) => {
-      console.log('Item removed:', data);
-      setItems(prevItems => prevItems.filter(item => item.id !== data.id));
-    };
-
-    const handleUserJoined = (user: ActiveUser) => {
-      console.log('User joined:', user);
-      setActiveUsers(prev => {
-        // Check if user already exists
-        if (prev.some(u => u.userId === user.userId)) {
-          return prev;
-        }
-        return [...prev, user];
-      });
-    };
-
-    const handleUserLeft = (user: ActiveUser) => {
-      console.log('User left:', user);
-      setActiveUsers(prev => prev.filter(u => u.userId !== user.userId));
-    };
-
-    const handleActiveUsers = (users: ActiveUser[]) => {
-      console.log('Active users:', users);
-      setActiveUsers(users);
-    };
+    const handleItemRemoved = (data: ItemRemovedUpdate) => setItems(prev => prev.filter(item => item.id !== data.id));
+    const handleUserJoined = (user: ActiveUser) => setActiveUsers(prev => prev.some(u => u.userId === user.userId) ? prev : [...prev, user]);
+    const handleUserLeft = (user: ActiveUser) => setActiveUsers(prev => prev.filter(u => u.userId !== user.userId));
+    const handleActiveUsers = (users: ActiveUser[]) => setActiveUsers(users);
 
     signalRService.onItemAdded(handleItemAdded);
     signalRService.onItemUpdated(handleItemUpdated);
@@ -133,7 +96,6 @@ export const ListDetailPage = () => {
     signalRService.onActiveUsers(handleActiveUsers);
 
     return () => {
-      // Clean up specific event handlers
       signalRService.offItemAdded(handleItemAdded);
       signalRService.offItemUpdated(handleItemUpdated);
       signalRService.offItemBoughtStatusChanged(handleItemBoughtStatusChanged);
@@ -141,7 +103,6 @@ export const ListDetailPage = () => {
       signalRService.offUserJoined(handleUserJoined);
       signalRService.offUserLeft(handleUserLeft);
       signalRService.offActiveUsers(handleActiveUsers);
-      // Leave the list room
       leaveList(listId).catch(err => console.error('Failed to leave list:', err));
       setActiveUsers([]);
     };
@@ -149,10 +110,8 @@ export const ListDetailPage = () => {
 
   const handleToggleBought = async (item: GroceryItem) => {
     if (!listId) return;
-    
     try {
       await groceryItemService.markBought(listId, item.id, !item.isBought);
-      // No need to reload - SignalR will update automatically
     } catch (error) {
       console.error('Failed to toggle item:', error);
     }
@@ -160,11 +119,9 @@ export const ListDetailPage = () => {
 
   const handleDeleteItem = async (itemId: string) => {
     if (!listId) return;
-    
     if (confirm('Are you sure you want to delete this item?')) {
       try {
         await groceryItemService.delete(listId, itemId);
-        // No need to reload - SignalR will update automatically
       } catch (error) {
         console.error('Failed to delete item:', error);
       }
@@ -173,11 +130,10 @@ export const ListDetailPage = () => {
 
   const handleAddItem = async (name: string, quantity: number, unit?: string, groupId?: string) => {
     if (!listId) return;
-    
     try {
       await groceryItemService.create(listId, { name, quantity, unit, groupId });
-      // No need to reload - SignalR will update automatically
       setOpenItemDialog(false);
+      setPrefillGroupId(undefined);
     } catch (error) {
       console.error('Failed to add item:', error);
     }
@@ -185,7 +141,6 @@ export const ListDetailPage = () => {
 
   const handleCreateGroup = async (name: string, color?: string, icon?: string) => {
     if (!listId) return;
-    
     try {
       const sortOrder = groups.length;
       await itemGroupService.create(listId, { name, icon, color, sortOrder });
@@ -206,63 +161,29 @@ export const ListDetailPage = () => {
     return (
       <>
         {groupedItems.map(({ group, items: groupItems }) => (
-          groupItems.length > 0 && (
-            <Box key={group.id} sx={{ mb: 2 }}>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, px: 1 }}>
-                {group.icon ? (
-                  <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
-                ) : (
-                  <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
-                )}
-                <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
-                <Chip size="small" label={groupItems.length} />
-              </Stack>
-              <List dense sx={{ py: 0 }}>
-                {groupItems.map((item) => (
-                  <ListItem
-                    key={item.id}
-                    sx={{
-                      textDecoration: item.isBought ? 'line-through' : 'none',
-                      opacity: item.isBought ? 0.6 : 1,
-                      py: 0.5,
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 40 }}>
-                      <Checkbox
-                        edge="start"
-                        checked={item.isBought}
-                        onChange={() => handleToggleBought(item)}
-                      />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={item.name}
-                      secondary={`${item.quantity} ${item.unit || 'pcs'}`}
-                    />
-                    <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        size="small"
-                        onClick={() => handleDeleteItem(item.id)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                ))}
-              </List>
-              <Divider />
-            </Box>
-          )
-        ))}
-
-        {ungroupedItems.length > 0 && (
-          <Box>
-            <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.5, px: 1 }}>
-              Ungrouped Items
-            </Typography>
+          <Box key={group.id} sx={{ mb: 2 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, px: 1 }}>
+              {group.icon ? (
+                <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
+              ) : (
+                <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
+              )}
+              <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
+              <Chip size="small" label={groupItems.length} />
+              <IconButton
+                size="small"
+                aria-label={`add-item-to-group-${group.name}`}
+                onClick={() => {
+                  setPrefillGroupId(group.id);
+                  setOpenItemDialog(true);
+                }}
+                sx={{ ml: 1 }}
+              >
+                <AddIcon fontSize="small" />
+              </IconButton>
+            </Stack>
             <List dense sx={{ py: 0 }}>
-              {ungroupedItems.map((item) => (
+              {groupItems.map(item => (
                 <ListItem
                   key={item.id}
                   sx={{
@@ -295,8 +216,48 @@ export const ListDetailPage = () => {
                 </ListItem>
               ))}
             </List>
+            <Divider />
           </Box>
-        )}
+        ))}
+        <Box>
+          <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.5, px: 1 }}>
+            Ungrouped Items
+          </Typography>
+          <List dense sx={{ py: 0 }}>
+            {ungroupedItems.map(item => (
+              <ListItem
+                key={item.id}
+                sx={{
+                  textDecoration: item.isBought ? 'line-through' : 'none',
+                  opacity: item.isBought ? 0.6 : 1,
+                  py: 0.5,
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Checkbox
+                    edge="start"
+                    checked={item.isBought}
+                    onChange={() => handleToggleBought(item)}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.name}
+                  secondary={`${item.quantity} ${item.unit || 'pcs'}`}
+                />
+                <ListItemSecondaryAction>
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    size="small"
+                    onClick={() => handleDeleteItem(item.id)}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
       </>
     );
   };
@@ -391,8 +352,20 @@ export const ListDetailPage = () => {
       <AddItemDialog
         open={openItemDialog}
         groups={groups}
-        onClose={() => setOpenItemDialog(false)}
-        onAdd={handleAddItem}
+        onClose={() => {
+          setOpenItemDialog(false);
+          setPrefillGroupId(undefined);
+        }}
+        onAdd={(name, quantity, unit, groupId) => {
+          handleAddItem(name, quantity, unit, groupId || prefillGroupId);
+        }}
+        onCreateGroup={async (name, color, icon) => {
+          if (!listId) return '';
+          const sortOrder = groups.length;
+          const group = await itemGroupService.create(listId, { name, icon, color, sortOrder });
+          await loadData();
+          return group.id;
+        }}
       />
 
       <ShareListDialog
