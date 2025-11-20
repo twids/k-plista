@@ -17,13 +17,13 @@ public class AuthController : ControllerBase
 {
     private readonly KPlistaDbContext _context;
     private readonly ILogger<AuthController> _logger;
-    private readonly IJwtTokenService _jwtTokenService;
+    private readonly IJwtService _jwtService;
 
-    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtTokenService jwtTokenService)
+    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtService jwtService)
     {
         _context = context;
         _logger = logger;
-        _jwtTokenService = jwtTokenService;
+        _jwtService = jwtService;
     }
 
     /// <summary>
@@ -89,9 +89,29 @@ public class AuthController : ControllerBase
         };
 
         _context.Users.Add(newUser);
-        return newUser;
-    }
 
+        try
+        {
+            await _context.SaveChangesAsync();
+            return newUser;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is NpgsqlException pgEx && pgEx.SqlState == "23505")
+        {
+            // Unique constraint violation - retry once to handle race condition
+            _logger.LogWarning("Duplicate key error when creating user. Retrying...");
+            
+            // Reload the user that was created by another thread/request
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId);
+            
+            if (existingUser != null)
+            {
+                return existingUser;
+            }
+            
+            throw; // If still not found, re-throw the original exception
+        }
+    }
     // GET: api/auth/me
     [HttpGet("me")]
     [Authorize]
@@ -121,65 +141,56 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/login
     [HttpPost("login")]
-    public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
         // This is a simplified version - in a real app, you would validate the token
         // with the external provider (Google, Facebook, Apple)
         
-        try
+        // For now, we'll create or update the user based on the provided information
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.ExternalProvider == request.Provider && 
+                                     u.ExternalUserId == request.ExternalUserId);
+
+        if (user == null)
         {
-            var user = await GetOrCreateUserAsync(
-                request.Provider,
-                request.ExternalUserId,
-                request.Email,
-                request.Name,
-                request.ProfilePictureUrl
-            );
+            // Create new user
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = request.Email,
+                Name = request.Name,
+                ProfilePictureUrl = request.ProfilePictureUrl,
+                ExternalProvider = request.Provider,
+                ExternalUserId = request.ExternalUserId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-            await _context.SaveChangesAsync();
-
-            // Generate JWT token
-            var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
-
-            var response = new LoginResponseDto(
-                user.Id,
-                user.Email,
-                user.Name,
-                user.ProfilePictureUrl,
-                token
-            );
-
-            return Ok(response);
+            _context.Users.Add(user);
         }
-        catch (InvalidOperationException ex)
+        else
         {
-            // Handle email already exists with different provider
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = ex.Message
-            });
+            // Update existing user
+            user.Email = request.Email;
+            user.Name = request.Name;
+            user.ProfilePictureUrl = request.ProfilePictureUrl;
+            user.UpdatedAt = DateTime.UtcNow;
         }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
-        {
-            // Handle race condition where unique constraint is violated
-            _logger.LogWarning(ex, "Unique constraint violation during user creation");
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = "An account with this email already exists. Please try signing in again."
-            });
-        }
-    }
 
-    /// <summary>
-    /// Checks if a DbUpdateException is caused by a unique constraint violation.
-    /// </summary>
-    private bool IsUniqueConstraintViolation(DbUpdateException ex)
-    {
-        // Check if the inner exception is a PostgreSQL unique constraint violation
-        return ex.InnerException is PostgresException postgresException 
-            && postgresException.SqlState == "23505"; // Unique violation
+        await _context.SaveChangesAsync();
+
+        // Generate JWT token
+        var token = _jwtService.GenerateToken(user.Id, user.Email, user.Name);
+
+        var response = new LoginResponse(
+            user.Id,
+            user.Email,
+            user.Name,
+            user.ProfilePictureUrl,
+            token
+        );
+
+        return Ok(response);
     }
 
     // GET: api/auth/google
@@ -210,39 +221,36 @@ public class AuthController : ControllerBase
             return BadRequest("Invalid user information");
         }
 
-        try
-        {
-            var user = await GetOrCreateUserAsync(
-                "Google",
-                externalUserId,
-                email,
-                name ?? email
-            );
+        // Create or update user
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.ExternalProvider == "Google" && u.ExternalUserId == externalUserId);
 
-            await _context.SaveChangesAsync();
+        if (user == null)
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                Name = name ?? email,
+                ExternalProvider = "Google",
+                ExternalUserId = externalUserId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-            // In a real app, you would create a JWT token here
-            return Ok(new { userId = user.Id, email = user.Email, name = user.Name });
+            _context.Users.Add(user);
         }
-        catch (InvalidOperationException ex)
+        else
         {
-            // Handle email already exists with different provider
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = ex.Message
-            });
+            user.Email = email;
+            user.Name = name ?? user.Name;
+            user.UpdatedAt = DateTime.UtcNow;
         }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
-        {
-            // Handle race condition where unique constraint is violated
-            _logger.LogWarning(ex, "Unique constraint violation during user creation");
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = "An account with this email already exists. Please try signing in again."
-            });
-        }
+
+        await _context.SaveChangesAsync();
+
+        // In a real app, you would create a JWT token here
+        return Ok(new { userId = user.Id, email = user.Email, name = user.Name });
     }
 
     // GET: api/auth/facebook
@@ -273,39 +281,36 @@ public class AuthController : ControllerBase
             return BadRequest("Invalid user information");
         }
 
-        try
-        {
-            var user = await GetOrCreateUserAsync(
-                "Facebook",
-                externalUserId,
-                email,
-                name ?? email
-            );
+        // Create or update user
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.ExternalProvider == "Facebook" && u.ExternalUserId == externalUserId);
 
-            await _context.SaveChangesAsync();
+        if (user == null)
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                Name = name ?? email,
+                ExternalProvider = "Facebook",
+                ExternalUserId = externalUserId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-            // In a real app, you would create a JWT token here
-            return Ok(new { userId = user.Id, email = user.Email, name = user.Name });
+            _context.Users.Add(user);
         }
-        catch (InvalidOperationException ex)
+        else
         {
-            // Handle email already exists with different provider
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = ex.Message
-            });
+            user.Email = email;
+            user.Name = name ?? user.Name;
+            user.UpdatedAt = DateTime.UtcNow;
         }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
-        {
-            // Handle race condition where unique constraint is violated
-            _logger.LogWarning(ex, "Unique constraint violation during user creation");
-            return BadRequest(new 
-            { 
-                error = "EmailAlreadyExists",
-                message = "An account with this email already exists. Please try signing in again."
-            });
-        }
+
+        await _context.SaveChangesAsync();
+
+        // In a real app, you would create a JWT token here
+        return Ok(new { userId = user.Id, email = user.Email, name = user.Name });
     }
 }
 
