@@ -45,6 +45,7 @@ export interface GroceryItem {
 export interface ItemGroup {
   id: string;
   name: string;
+  icon?: string;
   color?: string;
   sortOrder: number;
   groceryListId: string;
@@ -79,6 +80,7 @@ export interface CreateGroceryItemDto {
 
 export interface CreateItemGroupDto {
   name: string;
+  icon?: string;
   color?: string;
   sortOrder: number;
 }

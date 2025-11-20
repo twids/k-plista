@@ -183,12 +183,12 @@ export const ListDetailPage = () => {
     }
   };
 
-  const handleCreateGroup = async (name: string, color?: string) => {
+  const handleCreateGroup = async (name: string, color?: string, icon?: string) => {
     if (!listId) return;
     
     try {
       const sortOrder = groups.length;
-      await itemGroupService.create(listId, { name, color, sortOrder });
+      await itemGroupService.create(listId, { name, icon, color, sortOrder });
       await loadData();
       setOpenGroupDialog(false);
     } catch (error) {
@@ -207,22 +207,27 @@ export const ListDetailPage = () => {
       <>
         {groupedItems.map(({ group, items: groupItems }) => (
           groupItems.length > 0 && (
-            <Box key={group.id} sx={{ mb: 3 }}>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                <FolderIcon sx={{ color: group.color || 'primary.main' }} />
-                <Typography variant="h6">{group.name}</Typography>
+            <Box key={group.id} sx={{ mb: 2 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, px: 1 }}>
+                {group.icon ? (
+                  <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
+                ) : (
+                  <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
+                )}
+                <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
                 <Chip size="small" label={groupItems.length} />
               </Stack>
-              <List>
+              <List dense sx={{ py: 0 }}>
                 {groupItems.map((item) => (
                   <ListItem
                     key={item.id}
                     sx={{
                       textDecoration: item.isBought ? 'line-through' : 'none',
                       opacity: item.isBought ? 0.6 : 1,
+                      py: 0.5,
                     }}
                   >
-                    <ListItemIcon>
+                    <ListItemIcon sx={{ minWidth: 40 }}>
                       <Checkbox
                         edge="start"
                         checked={item.isBought}
@@ -237,9 +242,10 @@ export const ListDetailPage = () => {
                       <IconButton
                         edge="end"
                         aria-label="delete"
+                        size="small"
                         onClick={() => handleDeleteItem(item.id)}
                       >
-                        <DeleteIcon />
+                        <DeleteIcon fontSize="small" />
                       </IconButton>
                     </ListItemSecondaryAction>
                   </ListItem>
@@ -252,19 +258,20 @@ export const ListDetailPage = () => {
 
         {ungroupedItems.length > 0 && (
           <Box>
-            <Typography variant="h6" sx={{ mb: 1 }}>
+            <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.5, px: 1 }}>
               Ungrouped Items
             </Typography>
-            <List>
+            <List dense sx={{ py: 0 }}>
               {ungroupedItems.map((item) => (
                 <ListItem
                   key={item.id}
                   sx={{
                     textDecoration: item.isBought ? 'line-through' : 'none',
                     opacity: item.isBought ? 0.6 : 1,
+                    py: 0.5,
                   }}
                 >
-                  <ListItemIcon>
+                  <ListItemIcon sx={{ minWidth: 40 }}>
                     <Checkbox
                       edge="start"
                       checked={item.isBought}
@@ -279,9 +286,10 @@ export const ListDetailPage = () => {
                     <IconButton
                       edge="end"
                       aria-label="delete"
+                      size="small"
                       onClick={() => handleDeleteItem(item.id)}
                     >
-                      <DeleteIcon />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -302,14 +310,14 @@ export const ListDetailPage = () => {
   }
 
   return (
-    <Box sx={{ pb: 8 }}>
+    <Box sx={{ pb: 7 }}>
       <AppBar position="static">
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
           <IconButton
             edge="start"
             color="inherit"
             onClick={() => navigate('/lists')}
-            sx={{ mr: 2 }}
+            sx={{ mr: 1 }}
           >
             <ArrowBackIcon />
           </IconButton>
@@ -317,15 +325,15 @@ export const ListDetailPage = () => {
             Grocery List
           </Typography>
           {activeUsers.length > 0 && (
-            <Box sx={{ mr: 2 }}>
+            <Box sx={{ mr: 1 }}>
               <AvatarGroup max={4}>
                 {activeUsers.map((user) => (
                   <Tooltip key={user.userId} title={user.userName}>
                     <Avatar
                       sx={{
-                        width: 32,
-                        height: 32,
-                        fontSize: '0.875rem',
+                        width: 30,
+                        height: 30,
+                        fontSize: '0.75rem',
                         bgcolor: 'secondary.main',
                       }}
                     >
@@ -342,9 +350,9 @@ export const ListDetailPage = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Container maxWidth="md" sx={{ mt: 2, px: { xs: 2, sm: 3 } }}>
         {items.length === 0 ? (
-          <Box textAlign="center" py={8}>
+          <Box textAlign="center" py={6}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
               No items yet
             </Typography>
@@ -365,6 +373,7 @@ export const ListDetailPage = () => {
         <Fab
           color="secondary"
           aria-label="create group"
+          size="medium"
           onClick={() => setOpenGroupDialog(true)}
         >
           <FolderIcon />
@@ -372,6 +381,7 @@ export const ListDetailPage = () => {
         <Fab
           color="primary"
           aria-label="add item"
+          size="medium"
           onClick={() => setOpenItemDialog(true)}
         >
           <AddIcon />
