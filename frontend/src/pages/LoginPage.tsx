@@ -13,11 +13,12 @@ export const LoginPage = () => {
     // In a real app, this would integrate with Google OAuth
     // For demo purposes, we'll create a mock user and call the backend
     try {
+      const randomNum = Math.floor(Math.random() * 1000);
       const mockGoogleUser = {
         provider: 'Google',
         externalUserId: 'google-' + crypto.randomUUID(),
-        email: 'demo.user@gmail.com',
-        name: 'Demo User',
+        email: `google.user${randomNum}@gmail.com`,
+        name: `Google User ${randomNum}`,
         profilePictureUrl: 'https://via.placeholder.com/150'
       };
       
@@ -39,11 +40,12 @@ export const LoginPage = () => {
   const handleFacebookLogin = async () => {
     // Similar implementation for Facebook
     try {
+      const randomNum = Math.floor(Math.random() * 1000);
       const mockFacebookUser = {
         provider: 'Facebook',
         externalUserId: 'facebook-' + crypto.randomUUID(),
-        email: 'demo.user@facebook.com',
-        name: 'Demo User',
+        email: `facebook.user${randomNum}@facebook.com`,
+        name: `Facebook User ${randomNum}`,
         profilePictureUrl: 'https://via.placeholder.com/150'
       };
       
@@ -65,11 +67,12 @@ export const LoginPage = () => {
   const handleAppleLogin = async () => {
     // Similar implementation for Apple
     try {
+      const randomNum = Math.floor(Math.random() * 1000);
       const mockAppleUser = {
         provider: 'Apple',
         externalUserId: 'apple-' + crypto.randomUUID(),
-        email: 'demo.user@icloud.com',
-        name: 'Demo User',
+        email: `apple.user${randomNum}@icloud.com`,
+        name: `Apple User ${randomNum}`,
         profilePictureUrl: 'https://via.placeholder.com/150'
       };
       

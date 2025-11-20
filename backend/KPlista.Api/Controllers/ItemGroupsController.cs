@@ -62,6 +62,7 @@ public class ItemGroupsController : ControllerBase
             .Select(g => new ItemGroupDto(
                 g.Id,
                 g.Name,
+                g.Icon,
                 g.Color,
                 g.SortOrder,
                 g.GroceryListId,
@@ -97,6 +98,7 @@ public class ItemGroupsController : ControllerBase
         var dto = new ItemGroupDto(
             group.Id,
             group.Name,
+            group.Icon,
             group.Color,
             group.SortOrder,
             group.GroceryListId,
@@ -123,6 +125,7 @@ public class ItemGroupsController : ControllerBase
         {
             Id = Guid.NewGuid(),
             Name = dto.Name,
+            Icon = dto.Icon,
             Color = dto.Color,
             SortOrder = dto.SortOrder,
             GroceryListId = listId,
@@ -136,6 +139,7 @@ public class ItemGroupsController : ControllerBase
         var resultDto = new ItemGroupDto(
             group.Id,
             group.Name,
+            group.Icon,
             group.Color,
             group.SortOrder,
             group.GroceryListId,
@@ -167,6 +171,7 @@ public class ItemGroupsController : ControllerBase
         }
 
         group.Name = dto.Name;
+        group.Icon = dto.Icon;
         group.Color = dto.Color;
         group.SortOrder = dto.SortOrder;
         group.UpdatedAt = DateTime.UtcNow;

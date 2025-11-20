@@ -6,12 +6,14 @@ import {
   DialogActions,
   TextField,
   Button,
+  Box,
+  Typography,
 } from '@mui/material';
 
 interface CreateGroupDialogProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (name: string, color?: string) => void;
+  onCreate: (name: string, color?: string, icon?: string) => void;
 }
 
 const groupColors = [
@@ -27,20 +29,37 @@ const groupColors = [
   '#FF9800', // Orange
 ];
 
+const commonEmojis = [
+  '🍎', '🥖', '🥛', '🥚', '🧀', '🥩', '🍗', '🐟',
+  '🥕', '🥒', '🌽', '🍅', '🥬', '🥦', '🌶️', '🥑',
+  '🍌', '🍇', '🍊', '🍋', '🍓', '🫐', '🍑', '🥝',
+  '🍞', '🥐', '🥯', '🧈', '🥞', '🧇', '🍪', '🍰',
+  '🍺', '🍷', '🥤', '☕', '🧃', '🧋', '🥫', '🍯'
+];
+
 export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialogProps) => {
   const [name, setName] = useState('');
   const [color, setColor] = useState(groupColors[0]);
+  const [icon, setIcon] = useState('');
 
   const handleSubmit = () => {
     if (name.trim()) {
-      onCreate(name, color);
+      onCreate(name, color, icon || undefined);
       setName('');
       setColor(groupColors[0]);
+      setIcon('');
     }
   };
 
+  const handleClose = () => {
+    setName('');
+    setColor(groupColors[0]);
+    setIcon('');
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Create Group</DialogTitle>
       <DialogContent>
         <TextField
@@ -50,16 +69,50 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
           fullWidth
           value={name}
           onChange={(e) => setName(e.target.value)}
-          sx={{ mb: 3 }}
+          sx={{ mb: 2 }}
         />
-        <div>
-          <label style={{ marginBottom: '8px', display: 'block' }}>Color</label>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Emoji Icon (optional)</Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+            {commonEmojis.map((emoji) => (
+              <Box
+                key={emoji}
+                onClick={() => setIcon(emoji)}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  borderRadius: 1,
+                  border: icon === emoji ? '2px solid #1976d2' : '1px solid #ccc',
+                  fontSize: '1.5rem',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                  },
+                }}
+              >
+                {emoji}
+              </Box>
+            ))}
+          </Box>
+          {icon && (
+            <Button size="small" onClick={() => setIcon('')}>
+              Clear Icon
+            </Button>
+          )}
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Color</Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {groupColors.map((c) => (
-              <div
+              <Box
                 key={c}
                 onClick={() => setColor(c)}
-                style={{
+                sx={{
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
@@ -69,11 +122,11 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
                 }}
               />
             ))}
-          </div>
-        </div>
+          </Box>
+        </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleClose}>Cancel</Button>
         <Button onClick={handleSubmit} variant="contained" disabled={!name.trim()}>
           Create
         </Button>
