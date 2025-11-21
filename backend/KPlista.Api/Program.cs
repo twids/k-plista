@@ -133,8 +133,10 @@ if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
     {
         var log = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
         var remoteIp = ctx.Connection.RemoteIpAddress?.ToString();
-        var xfp = ctx.Request.Headers["X-Forwarded-Proto"].ToString();
-        var xfh = ctx.Request.Headers["X-Forwarded-Host"].ToString();
+        var xfp = ctx.Request.Headers["X-Forwarded-Proto"].ToString()
+            .Replace("\r\n", "").Replace("\n", "").Replace("\r", "");
+        var xfh = ctx.Request.Headers["X-Forwarded-Host"].ToString()
+            .Replace("\r\n", "").Replace("\n", "").Replace("\r", "");
         log.LogInformation("ForwardedHeadersCheck RemoteIp={RemoteIp} XForwardedProto={XForwardedProto} XForwardedHost={XForwardedHost} EffectiveScheme={Scheme} EffectiveHost={Host}",
             remoteIp, xfp, xfh, ctx.Request.Scheme, ctx.Request.Host.ToString());
         await next();
