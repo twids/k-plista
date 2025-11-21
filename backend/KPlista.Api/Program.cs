@@ -127,7 +127,7 @@ var app = builder.Build();
 // Apply forwarded headers BEFORE generating security headers or auth redirects
 app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
 // Optional diagnostic logging of forwarded headers (enable via Logging:DebugForwardedHeaders=true)
-if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
+if (app.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
 {
     app.Use(async (ctx, next) =>
     {
