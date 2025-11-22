@@ -14,7 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Serilog bootstrap (early)
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
     .Enrich.WithProperty("AppStartTimestamp", DateTimeOffset.UtcNow)
     .CreateLogger();
 builder.Host.UseSerilog();
@@ -61,8 +60,8 @@ builder.Services.AddDbContext<KPlistaDbContext>(options =>
 // Forwarded headers (reverse proxy TLS termination); DO NOT trust all proxies blindly.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    // Only what we need for HTTPS scheme + host reconstruction. Exclude XForwardedFor unless required.
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    // Include XForwardedFor to capture real client IP when behind a proxy
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedFor;
     // Limit how many entries are processed to mitigate header injection chains.
     options.ForwardLimit = 1;
     // Optional single trusted proxy IP from configuration (ReverseProxy:TrustedProxyIp)
@@ -197,6 +196,43 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Correlation/context logging
+app.Use(async (ctx, next) =>
+{
+    var correlationId = ctx.Request.Headers["X-Correlation-ID"].FirstOrDefault() ?? Guid.NewGuid().ToString();
+    ctx.Response.Headers["X-Correlation-ID"] = correlationId;
+    using (LogContext.PushProperty("CorrelationId", correlationId))
+    using (LogContext.PushProperty("RemoteIp", ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"))
+    using (LogContext.PushProperty("RequestPath", ctx.Request.Path.ToString()))
+    using (LogContext.PushProperty("RequestMethod", ctx.Request.Method))
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            await next();
+            sw.Stop();
+            // Filter out successful static file requests from info-level logs
+            var path = ctx.Request.Path;
+            var isStaticFile = path.StartsWithSegments("/css") ||
+                               path.StartsWithSegments("/js") ||
+                               path.StartsWithSegments("/images") ||
+                               path.StartsWithSegments("/lib") ||
+                               path.StartsWithSegments("/static") ||
+                               path.StartsWithSegments("/favicon.ico");
+            if (!isStaticFile || ctx.Response.StatusCode >= 400)
+            {
+                Log.Information("HTTP request responded {StatusCode} in {ElapsedMs} ms", ctx.Response.StatusCode, sw.ElapsedMilliseconds);
+            }
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            Log.Error(ex, "HTTP request failed after {ElapsedMs} ms", sw.ElapsedMilliseconds);
+            throw;
+        }
+    }
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -245,32 +281,6 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while applying database migrations.");
     }
 }
-
-// Correlation/context logging
-app.Use(async (ctx, next) =>
-{
-    var correlationId = ctx.Request.Headers["X-Correlation-ID"].FirstOrDefault() ?? Guid.NewGuid().ToString();
-    ctx.Response.Headers["X-Correlation-ID"] = correlationId;
-    using (LogContext.PushProperty("CorrelationId", correlationId))
-    using (LogContext.PushProperty("RemoteIp", ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"))
-    using (LogContext.PushProperty("RequestPath", ctx.Request.Path.ToString()))
-    using (LogContext.PushProperty("RequestMethod", ctx.Request.Method))
-    {
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            await next();
-            sw.Stop();
-            Log.Information("HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs} ms", ctx.Request.Method, ctx.Request.Path, ctx.Response.StatusCode, sw.ElapsedMilliseconds);
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            Log.Error(ex, "HTTP {Method} {Path} failed after {ElapsedMs} ms", ctx.Request.Method, ctx.Request.Path, sw.ElapsedMilliseconds);
-            throw;
-        }
-    }
-});
 
 try
 {
