@@ -261,12 +261,12 @@ app.Use(async (ctx, next) =>
         {
             await next();
             sw.Stop();
-            Log.Information("HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs} ms", ctx.Request.Method, ctx.Request.Path, ctx.Response.StatusCode, sw.ElapsedMilliseconds);
+            Log.Information("HTTP request responded {StatusCode} in {ElapsedMs} ms", ctx.Response.StatusCode, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
             sw.Stop();
-            Log.Error(ex, "HTTP {Method} {Path} failed after {ElapsedMs} ms", ctx.Request.Method, ctx.Request.Path, sw.ElapsedMilliseconds);
+            Log.Error(ex, "HTTP request failed after {ElapsedMs} ms", sw.ElapsedMilliseconds);
             throw;
         }
     }
