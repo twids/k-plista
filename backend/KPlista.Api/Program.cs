@@ -133,8 +133,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Security Headers Middleware (placed early)
-// Apply forwarded headers BEFORE generating security headers or auth redirects
-app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
+// Debug forwarded headers BEFORE processing to log raw header values
 if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
 {
     app.Use(async (ctx, next) =>
@@ -147,6 +146,8 @@ if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
         await next();
     });
 }
+// Apply forwarded headers BEFORE generating security headers or auth redirects
+app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
 app.Use(async (context, next) =>
 {
     var headers = context.Response.Headers;
