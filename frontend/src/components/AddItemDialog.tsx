@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -16,6 +16,8 @@ import {
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import ClearIcon from '@mui/icons-material/Clear';
 import type { ItemGroup } from '../types';
+import { COMMON_EMOJIS } from '../constants/emojis';
+import { useEmojiPicker } from '../hooks/useEmojiPicker';
 
 interface AddItemDialogProps {
   open: boolean;
@@ -25,14 +27,6 @@ interface AddItemDialogProps {
   onCreateGroup?: (name: string, color?: string, icon?: string) => Promise<string>; // returns new groupId
 }
 
-const commonEmojis = [
-  '🍎', '🥖', '🥛', '🥚', '🧀', '🥩', '🍗', '🐟',
-  '🥕', '🥒', '🌽', '🍅', '🥬', '🥦', '🌶️', '🥑',
-  '🍌', '🍇', '🍊', '🍋', '🍓', '🫐', '🍑', '🥝',
-  '🍞', '🥐', '🥯', '🧈', '🥞', '🧇', '🍪', '🍰',
-  '🍺', '🍷', '🥤', '☕', '🧃', '🧋', '🥫', '🍯'
-];
-
 export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: AddItemDialogProps) => {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -40,8 +34,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
   const [groupId, setGroupId] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [showNewGroup, setShowNewGroup] = useState(false);
-  const [emoji, setEmoji] = useState('');
-  const emojiInputRef = useRef<HTMLInputElement>(null);
+  const { emoji, setEmoji, emojiInputRef, handleEmojiInputChange, handleEmojiClick, clearEmoji } = useEmojiPicker();
 
   const handleSubmit = () => {
     if (name.trim()) {
@@ -60,24 +53,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
       setGroupId(newId);
       setNewGroupName('');
       setShowNewGroup(false);
-      setEmoji('');
-    }
-  };
-
-  const handleEmojiInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Extract only the first emoji from the input
-    const value = e.target.value;
-    if (value) {
-      // Get the first character (which should be an emoji if the user selected one)
-      const firstChar = Array.from(value)[0];
-      setEmoji(firstChar);
-    }
-  };
-
-  const handleEmojiClick = () => {
-    // Focus on the emoji input to trigger the native emoji picker
-    if (emojiInputRef.current) {
-      emojiInputRef.current.focus();
+      clearEmoji();
     }
   };
 
@@ -166,7 +142,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEmoji('');
+                          clearEmoji();
                         }}
                       >
                         <ClearIcon fontSize="small" />
@@ -190,7 +166,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
               Or select from common options:
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-              {commonEmojis.map((emojiOption) => (
+              {COMMON_EMOJIS.map((emojiOption) => (
                 <Box
                   key={emojiOption}
                   onClick={() => setEmoji(emojiOption)}
@@ -224,7 +200,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
               </Button>
               <Button sx={{ ml: 2 }} onClick={() => {
                 setShowNewGroup(false);
-                setEmoji('');
+                clearEmoji();
               }}>
                 Cancel
               </Button>
