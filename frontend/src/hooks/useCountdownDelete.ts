@@ -64,35 +64,47 @@ export const useCountdownDelete = (
       message,
     });
 
-    let remainingTime = COUNTDOWN_SECONDS;
+    let remainingTime = COUNTDOWN_SECONDS - 1;
 
-    // Start countdown timer
+    // Start countdown timer - update display every second
     timerRef.current = setInterval(() => {
-      remainingTime -= 1;
-      setCountdownState((prev) => ({
-        ...prev,
-        countdown: remainingTime,
-      }));
-
-      if (remainingTime <= 0) {
-        cleanup();
+      if (remainingTime > 0) {
+        setCountdownState((prev) => ({
+          ...prev,
+          countdown: remainingTime,
+        }));
+        remainingTime -= 1;
+      } else {
+        // Countdown reached 0, clear the interval
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
       }
     }, 1000);
 
-    // Set timeout to execute delete
+    // Set timeout to execute delete - this is the authoritative timer
     deleteTimeoutRef.current = setTimeout(async () => {
       cleanup();
-      setCountdownState({
-        isCountingDown: false,
-        countdown: COUNTDOWN_SECONDS,
-        itemId: null,
-        message: '',
-      });
       
       try {
         await onDelete(itemId);
+        // Only reset state after successful deletion
+        setCountdownState({
+          isCountingDown: false,
+          countdown: COUNTDOWN_SECONDS,
+          itemId: null,
+          message: '',
+        });
       } catch (error) {
         console.error('Delete operation failed:', error);
+        // Reset state even on error, but error is logged
+        setCountdownState({
+          isCountingDown: false,
+          countdown: COUNTDOWN_SECONDS,
+          itemId: null,
+          message: '',
+        });
       }
     }, COUNTDOWN_SECONDS * 1000);
   }, [cleanup, onDelete]);
