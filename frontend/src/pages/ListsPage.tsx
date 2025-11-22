@@ -27,6 +27,8 @@ import { groceryListService } from '../services/groceryListService';
 import { useAuth } from '../hooks/useAuth';
 import { CreateListDialog } from '../components/CreateListDialog';
 import { EditListDialog } from '../components/EditListDialog';
+import { useCountdownDelete } from '../hooks/useCountdownDelete';
+import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
 
 export const ListsPage = () => {
   const [lists, setLists] = useState<GroceryList[]>([]);
@@ -35,6 +37,17 @@ export const ListsPage = () => {
   const [editingList, setEditingList] = useState<GroceryList | null>(null);
   const navigate = useNavigate();
   const { logout } = useAuth();
+
+  const handleDeleteListAction = async (id: string) => {
+    try {
+      await groceryListService.delete(id);
+      await loadLists();
+    } catch (error) {
+      console.error('Failed to delete list:', error);
+    }
+  };
+
+  const { countdownState, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteListAction);
 
   useEffect(() => {
     loadLists();
@@ -71,15 +84,8 @@ export const ListsPage = () => {
     }
   };
 
-  const handleDeleteList = async (id: string) => {
-    if (confirm('Are you sure you want to delete this list?')) {
-      try {
-        await groceryListService.delete(id);
-        await loadLists();
-      } catch (error) {
-        console.error('Failed to delete list:', error);
-      }
-    }
+  const handleDeleteList = async (id: string, listName: string) => {
+    initiateDelete(id, `Deleting "${listName}"`);
   };
 
   const handleLogout = () => {
@@ -160,7 +166,7 @@ export const ListsPage = () => {
                   <IconButton size="small" onClick={() => setEditingList(list)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDeleteList(list.id)}>
+                  <IconButton size="small" onClick={() => handleDeleteList(list.id, list.name)}>
                     <DeleteIcon />
                   </IconButton>
                 </CardActions>
@@ -190,6 +196,13 @@ export const ListsPage = () => {
         list={editingList}
         onClose={() => setEditingList(null)}
         onUpdate={handleEditList}
+      />
+
+      <CountdownDeleteSnackbar
+        open={countdownState.isCountingDown}
+        message={countdownState.message}
+        countdown={countdownState.countdown}
+        onCancel={cancelDelete}
       />
     </Box>
   );

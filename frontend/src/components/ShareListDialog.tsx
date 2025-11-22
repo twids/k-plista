@@ -18,6 +18,8 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import { listShareService } from '../services/listShareService';
 import type { ListShare } from '../types';
+import { useCountdownDelete } from '../hooks/useCountdownDelete';
+import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
 
 interface ShareListDialogProps {
   open: boolean;
@@ -30,6 +32,17 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
   const [canEdit, setCanEdit] = useState(true);
   const [shares, setShares] = useState<ListShare[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const handleRemoveShareAction = async (shareId: string) => {
+    try {
+      await listShareService.delete(listId, shareId);
+      await loadShares();
+    } catch (error) {
+      console.error('Failed to remove share:', error);
+    }
+  };
+
+  const { countdownState, initiateDelete, cancelDelete } = useCountdownDelete(handleRemoveShareAction);
 
   const loadShares = useCallback(async () => {
     try {
@@ -66,13 +79,8 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
     }
   };
 
-  const handleRemoveShare = async (shareId: string) => {
-    try {
-      await listShareService.delete(listId, shareId);
-      await loadShares();
-    } catch (error) {
-      console.error('Failed to remove share:', error);
-    }
+  const handleRemoveShare = async (shareId: string, userName: string) => {
+    initiateDelete(shareId, `Removing access for "${userName}"`);
   };
 
   return (
@@ -116,7 +124,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
                     <IconButton
                       edge="end"
                       aria-label="delete"
-                      onClick={() => handleRemoveShare(share.id)}
+                      onClick={() => handleRemoveShare(share.id, share.sharedWithUserName)}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -142,6 +150,13 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
           Share
         </Button>
       </DialogActions>
+
+      <CountdownDeleteSnackbar
+        open={countdownState.isCountingDown}
+        message={countdownState.message}
+        countdown={countdownState.countdown}
+        onCancel={cancelDelete}
+      />
     </Dialog>
   );
 };
