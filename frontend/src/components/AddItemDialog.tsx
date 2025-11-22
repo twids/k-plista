@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -9,7 +9,12 @@ import {
   Button,
   MenuItem,
   Box,
+  Typography,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
+import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
+import ClearIcon from '@mui/icons-material/Clear';
 import type { ItemGroup } from '../types';
 
 interface AddItemDialogProps {
@@ -20,6 +25,14 @@ interface AddItemDialogProps {
   onCreateGroup?: (name: string, color?: string, icon?: string) => Promise<string>; // returns new groupId
 }
 
+const commonEmojis = [
+  '🍎', '🥖', '🥛', '🥚', '🧀', '🥩', '🍗', '🐟',
+  '🥕', '🥒', '🌽', '🍅', '🥬', '🥦', '🌶️', '🥑',
+  '🍌', '🍇', '🍊', '🍋', '🍓', '🫐', '🍑', '🥝',
+  '🍞', '🥐', '🥯', '🧈', '🥞', '🧇', '🍪', '🍰',
+  '🍺', '🍷', '🥤', '☕', '🧃', '🧋', '🥫', '🍯'
+];
+
 export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: AddItemDialogProps) => {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -28,6 +41,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
   const [newGroupName, setNewGroupName] = useState('');
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [emoji, setEmoji] = useState('');
+  const emojiInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
     if (name.trim()) {
@@ -50,24 +64,21 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
     }
   };
 
-  // Emoji picker using system dialog
-  const handleEmojiPicker = () => {
-    // Use the native emoji picker if available
-    // This works in Chrome/Edge/Opera, not Firefox/Safari
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.style.position = 'absolute';
-    input.style.opacity = '0';
-    document.body.appendChild(input);
-    input.focus();
-    input.onblur = () => document.body.removeChild(input);
-    input.oninput = () => {
-      setEmoji(input.value);
-      document.body.removeChild(input);
-    };
-    // Open emoji picker (Win + . or Cmd + Ctrl + Space)
-    input.setSelectionRange(0, 0);
-    input.click();
+  const handleEmojiInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Extract only the first emoji from the input
+    const value = e.target.value;
+    if (value) {
+      // Get the first character (which should be an emoji if the user selected one)
+      const firstChar = Array.from(value)[0];
+      setEmoji(firstChar);
+    }
+  };
+
+  const handleEmojiClick = () => {
+    // Focus on the emoji input to trigger the native emoji picker
+    if (emojiInputRef.current) {
+      emojiInputRef.current.focus();
+    }
   };
 
   return (
@@ -109,7 +120,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}
           >
-            <MenuItem value="">None</MenuItem>
+            <MenuItem value="">No Group</MenuItem>
             {groups.map((group) => (
               <MenuItem key={group.id} value={group.id}>
                 {group.name}
@@ -129,20 +140,95 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
               onChange={(e) => setNewGroupName(e.target.value)}
               sx={{ mb: 2 }}
             />
-            <Button variant="outlined" onClick={handleEmojiPicker} sx={{ mr: 2 }}>
-              {emoji ? `Icon: ${emoji}` : 'Pick Emoji Icon'}
-            </Button>
-            {emoji && (
-              <Button size="small" onClick={() => setEmoji('')}>Clear Icon</Button>
-            )}
-            <Button
-              variant="contained"
-              onClick={handleCreateGroup}
-              disabled={!newGroupName.trim()}
-            >
-              Create Group
-            </Button>
-            <Button sx={{ ml: 2 }} onClick={() => setShowNewGroup(false)}>Cancel</Button>
+            
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>Emoji Icon (optional)</Typography>
+            
+            {/* Native emoji picker approach */}
+            <TextField
+              inputRef={emojiInputRef}
+              placeholder="Click to select emoji"
+              value={emoji}
+              onChange={handleEmojiInputChange}
+              onClick={handleEmojiClick}
+              fullWidth
+              size="small"
+              InputProps={{
+                readOnly: true,
+                startAdornment: emoji ? (
+                  <InputAdornment position="start">
+                    <Box sx={{ fontSize: '1.5rem' }}>{emoji}</Box>
+                  </InputAdornment>
+                ) : null,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {emoji ? (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEmoji('');
+                        }}
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    ) : (
+                      <IconButton size="small" onClick={handleEmojiClick}>
+                        <EmojiEmotionsIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ cursor: 'pointer', mb: 1 }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              Tip: Use your system's emoji picker (Windows: Win + . | Mac: Cmd + Ctrl + Space | Linux: Ctrl + . or Ctrl + ;)
+            </Typography>
+            
+            {/* Quick selection from common emojis */}
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              Or select from common options:
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+              {commonEmojis.map((emojiOption) => (
+                <Box
+                  key={emojiOption}
+                  onClick={() => setEmoji(emojiOption)}
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    borderRadius: 1,
+                    border: emoji === emojiOption ? '2px solid #1976d2' : '1px solid #ccc',
+                    fontSize: '1.2rem',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
+                  {emojiOption}
+                </Box>
+              ))}
+            </Box>
+            
+            <Box>
+              <Button
+                variant="contained"
+                onClick={handleCreateGroup}
+                disabled={!newGroupName.trim()}
+              >
+                Create Group
+              </Button>
+              <Button sx={{ ml: 2 }} onClick={() => {
+                setShowNewGroup(false);
+                setEmoji('');
+              }}>
+                Cancel
+              </Button>
+            </Box>
           </Box>
         )}
       </DialogContent>

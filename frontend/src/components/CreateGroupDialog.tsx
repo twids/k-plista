@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -8,7 +8,11 @@ import {
   Button,
   Box,
   Typography,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
+import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
+import ClearIcon from '@mui/icons-material/Clear';
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -41,6 +45,7 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
   const [name, setName] = useState('');
   const [color, setColor] = useState(groupColors[0]);
   const [icon, setIcon] = useState('');
+  const emojiInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
     if (name.trim()) {
@@ -56,6 +61,23 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
     setColor(groupColors[0]);
     setIcon('');
     onClose();
+  };
+
+  const handleEmojiInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Extract only the first emoji from the input
+    const value = e.target.value;
+    if (value) {
+      // Get the first character (which should be an emoji if the user selected one)
+      const firstChar = Array.from(value)[0];
+      setIcon(firstChar);
+    }
+  };
+
+  const handleEmojiClick = () => {
+    // Focus on the emoji input to trigger the native emoji picker
+    if (emojiInputRef.current) {
+      emojiInputRef.current.focus();
+    }
   };
 
   return (
@@ -74,7 +96,55 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
         
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>Emoji Icon (optional)</Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+          
+          {/* Native emoji picker approach */}
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              inputRef={emojiInputRef}
+              placeholder="Click to select emoji"
+              value={icon}
+              onChange={handleEmojiInputChange}
+              onClick={handleEmojiClick}
+              fullWidth
+              InputProps={{
+                readOnly: true,
+                startAdornment: icon ? (
+                  <InputAdornment position="start">
+                    <Box sx={{ fontSize: '2rem' }}>{icon}</Box>
+                  </InputAdornment>
+                ) : null,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {icon ? (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIcon('');
+                        }}
+                      >
+                        <ClearIcon />
+                      </IconButton>
+                    ) : (
+                      <IconButton size="small" onClick={handleEmojiClick}>
+                        <EmojiEmotionsIcon />
+                      </IconButton>
+                    )}
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ cursor: 'pointer' }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              Tip: Use your system's emoji picker (Windows: Win + . | Mac: Cmd + Ctrl + Space | Linux: Ctrl + . or Ctrl + ;)
+            </Typography>
+          </Box>
+
+          {/* Quick selection from common emojis */}
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            Or select from common options:
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {commonEmojis.map((emoji) => (
               <Box
                 key={emoji}
@@ -98,11 +168,6 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
               </Box>
             ))}
           </Box>
-          {icon && (
-            <Button size="small" onClick={() => setIcon('')}>
-              Clear Icon
-            </Button>
-          )}
         </Box>
 
         <Box>
