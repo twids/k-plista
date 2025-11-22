@@ -14,7 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Serilog bootstrap (early)
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
     .Enrich.WithProperty("AppStartTimestamp", DateTimeOffset.UtcNow)
     .CreateLogger();
 builder.Host.UseSerilog();
