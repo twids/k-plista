@@ -11,6 +11,9 @@ export const useEmojiPicker = (initialValue = '') => {
       // Get the first character (which should be an emoji if the user selected one)
       const firstChar = Array.from(value)[0];
       setEmoji(firstChar);
+    } else {
+      // Clear the emoji if the input is empty
+      setEmoji('');
     }
   };
 

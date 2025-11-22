@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import ClearIcon from '@mui/icons-material/Clear';
-import { COMMON_EMOJIS } from '../constants/emojis';
+import { COMMON_EMOJIS, EMOJI_DISPLAY_SIZE, EMOJI_SELECTOR_SIZE } from '../constants/emojis';
 import { useEmojiPicker } from '../hooks/useEmojiPicker';
 
 interface CreateGroupDialogProps {
@@ -86,7 +86,7 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
                 readOnly: true,
                 startAdornment: icon ? (
                   <InputAdornment position="start">
-                    <Box sx={{ fontSize: '2rem' }}>{icon}</Box>
+                    <Box sx={{ fontSize: EMOJI_DISPLAY_SIZE }}>{icon}</Box>
                   </InputAdornment>
                 ) : null,
                 endAdornment: (
@@ -126,8 +126,8 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
                 key={emoji}
                 onClick={() => setIcon(emoji)}
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: EMOJI_SELECTOR_SIZE,
+                  height: EMOJI_SELECTOR_SIZE,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

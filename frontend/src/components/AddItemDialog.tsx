@@ -16,7 +16,7 @@ import {
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import ClearIcon from '@mui/icons-material/Clear';
 import type { ItemGroup } from '../types';
-import { COMMON_EMOJIS } from '../constants/emojis';
+import { COMMON_EMOJIS, EMOJI_DISPLAY_SIZE, EMOJI_SELECTOR_SIZE } from '../constants/emojis';
 import { useEmojiPicker } from '../hooks/useEmojiPicker';
 
 interface AddItemDialogProps {
@@ -55,6 +55,12 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
       setShowNewGroup(false);
       clearEmoji();
     }
+  };
+
+  const handleCancelNewGroup = () => {
+    setShowNewGroup(false);
+    setNewGroupName('');
+    clearEmoji();
   };
 
   return (
@@ -132,7 +138,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
                 readOnly: true,
                 startAdornment: emoji ? (
                   <InputAdornment position="start">
-                    <Box sx={{ fontSize: '1.5rem' }}>{emoji}</Box>
+                    <Box sx={{ fontSize: EMOJI_DISPLAY_SIZE }}>{emoji}</Box>
                   </InputAdornment>
                 ) : null,
                 endAdornment: (
@@ -171,15 +177,15 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
                   key={emojiOption}
                   onClick={() => setEmoji(emojiOption)}
                   sx={{
-                    width: 32,
-                    height: 32,
+                    width: EMOJI_SELECTOR_SIZE,
+                    height: EMOJI_SELECTOR_SIZE,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
                     borderRadius: 1,
                     border: emoji === emojiOption ? '2px solid #1976d2' : '1px solid #ccc',
-                    fontSize: '1.2rem',
+                    fontSize: '1.5rem',
                     '&:hover': {
                       bgcolor: 'action.hover',
                     },
@@ -198,10 +204,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
               >
                 Create Group
               </Button>
-              <Button sx={{ ml: 2 }} onClick={() => {
-                setShowNewGroup(false);
-                clearEmoji();
-              }}>
+              <Button sx={{ ml: 2 }} onClick={handleCancelNewGroup}>
                 Cancel
               </Button>
             </Box>
