@@ -16,7 +16,7 @@ import {
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import ClearIcon from '@mui/icons-material/Clear';
 import type { ItemGroup } from '../types';
-import { COMMON_EMOJIS, EMOJI_DISPLAY_SIZE, EMOJI_SELECTOR_SIZE } from '../constants/emojis';
+import { COMMON_EMOJIS, EMOJI_DISPLAY_SIZE, EMOJI_SELECTOR_SIZE, EMOJI_PICKER_HELP_TEXT } from '../constants/emojis';
 import { useEmojiPicker } from '../hooks/useEmojiPicker';
 
 interface AddItemDialogProps {
@@ -134,6 +134,9 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
               onClick={handleEmojiClick}
               fullWidth
               size="small"
+              inputProps={{
+                'aria-label': 'Select an emoji icon for this group using your system emoji picker',
+              }}
               InputProps={{
                 readOnly: true,
                 startAdornment: emoji ? (
@@ -164,7 +167,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
               sx={{ cursor: 'pointer', mb: 1 }}
             />
             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Tip: Use your system's emoji picker (Windows: Win + . | Mac: Cmd + Ctrl + Space | Linux: Ctrl + . or Ctrl + ;)
+              {EMOJI_PICKER_HELP_TEXT}
             </Typography>
             
             {/* Quick selection from common emojis */}
