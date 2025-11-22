@@ -8,7 +8,13 @@ import {
   Button,
   Box,
   Typography,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
+import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
+import ClearIcon from '@mui/icons-material/Clear';
+import { COMMON_EMOJIS, EMOJI_DISPLAY_SIZE, EMOJI_SELECTOR_SIZE, EMOJI_PICKER_HELP_TEXT } from '../constants/emojis';
+import { useEmojiPicker } from '../hooks/useEmojiPicker';
 
 interface CreateGroupDialogProps {
   open: boolean;
@@ -29,32 +35,24 @@ const groupColors = [
   '#FF9800', // Orange
 ];
 
-const commonEmojis = [
-  '🍎', '🥖', '🥛', '🥚', '🧀', '🥩', '🍗', '🐟',
-  '🥕', '🥒', '🌽', '🍅', '🥬', '🥦', '🌶️', '🥑',
-  '🍌', '🍇', '🍊', '🍋', '🍓', '🫐', '🍑', '🥝',
-  '🍞', '🥐', '🥯', '🧈', '🥞', '🧇', '🍪', '🍰',
-  '🍺', '🍷', '🥤', '☕', '🧃', '🧋', '🥫', '🍯'
-];
-
 export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialogProps) => {
   const [name, setName] = useState('');
   const [color, setColor] = useState(groupColors[0]);
-  const [icon, setIcon] = useState('');
+  const { emoji: icon, setEmoji: setIcon, emojiInputRef, handleEmojiInputChange, handleEmojiClick, clearEmoji } = useEmojiPicker();
 
   const handleSubmit = () => {
     if (name.trim()) {
       onCreate(name, color, icon || undefined);
       setName('');
       setColor(groupColors[0]);
-      setIcon('');
+      clearEmoji();
     }
   };
 
   const handleClose = () => {
     setName('');
     setColor(groupColors[0]);
-    setIcon('');
+    clearEmoji();
     onClose();
   };
 
@@ -74,14 +72,65 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
         
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>Emoji Icon (optional)</Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
-            {commonEmojis.map((emoji) => (
+          
+          {/* Native emoji picker approach */}
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              inputRef={emojiInputRef}
+              placeholder="Click to select emoji"
+              value={icon}
+              onChange={handleEmojiInputChange}
+              onClick={handleEmojiClick}
+              fullWidth
+              inputProps={{
+                'aria-label': 'Select an emoji icon for this group using your system emoji picker',
+              }}
+              InputProps={{
+                readOnly: true,
+                startAdornment: icon ? (
+                  <InputAdornment position="start">
+                    <Box sx={{ fontSize: EMOJI_DISPLAY_SIZE }}>{icon}</Box>
+                  </InputAdornment>
+                ) : null,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {icon ? (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearEmoji();
+                        }}
+                      >
+                        <ClearIcon />
+                      </IconButton>
+                    ) : (
+                      <IconButton size="small" onClick={handleEmojiClick}>
+                        <EmojiEmotionsIcon />
+                      </IconButton>
+                    )}
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ cursor: 'pointer' }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              {EMOJI_PICKER_HELP_TEXT}
+            </Typography>
+          </Box>
+
+          {/* Quick selection from common emojis */}
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            Or select from common options:
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {COMMON_EMOJIS.map((emoji) => (
               <Box
                 key={emoji}
                 onClick={() => setIcon(emoji)}
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: EMOJI_SELECTOR_SIZE,
+                  height: EMOJI_SELECTOR_SIZE,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -98,11 +147,6 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
               </Box>
             ))}
           </Box>
-          {icon && (
-            <Button size="small" onClick={() => setIcon('')}>
-              Clear Icon
-            </Button>
-          )}
         </Box>
 
         <Box>
