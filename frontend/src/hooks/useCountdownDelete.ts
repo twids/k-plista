@@ -64,24 +64,28 @@ export const useCountdownDelete = (
       message,
     });
 
-    let remainingTime = COUNTDOWN_SECONDS - 1;
+    const startTime = Date.now();
+    const endTime = startTime + COUNTDOWN_SECONDS * 1000;
 
-    // Start countdown timer - update display every second
+    // Update countdown display every second
     timerRef.current = setInterval(() => {
-      if (remainingTime > 0) {
+      const now = Date.now();
+      const remaining = Math.ceil((endTime - now) / 1000);
+      
+      if (remaining >= 0) {
         setCountdownState((prev) => ({
           ...prev,
-          countdown: remainingTime,
+          countdown: remaining,
         }));
-        remainingTime -= 1;
-      } else {
-        // Countdown reached 0, clear the interval
+      }
+      
+      if (remaining <= 0) {
         if (timerRef.current) {
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
       }
-    }, 1000);
+    }, 100); // Check more frequently for smoother updates
 
     // Set timeout to execute delete - this is the authoritative timer
     deleteTimeoutRef.current = setTimeout(async () => {
