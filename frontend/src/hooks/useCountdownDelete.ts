@@ -67,7 +67,7 @@ export const useCountdownDelete = (
     const startTime = Date.now();
     const endTime = startTime + COUNTDOWN_SECONDS * 1000;
 
-    // Update countdown display every second
+    // Update countdown display frequently for responsive UI
     timerRef.current = setInterval(() => {
       const now = Date.now();
       const remaining = Math.ceil((endTime - now) / 1000);
@@ -85,7 +85,7 @@ export const useCountdownDelete = (
           timerRef.current = null;
         }
       }
-    }, 100); // Check more frequently for smoother updates
+    }, 200); // Update every 200ms for responsive feel while avoiding excessive renders
 
     // Set timeout to execute delete - this is the authoritative timer
     deleteTimeoutRef.current = setTimeout(async () => {
