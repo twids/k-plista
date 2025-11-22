@@ -127,11 +127,13 @@ var app = builder.Build();
 // Apply forwarded headers BEFORE generating security headers or auth redirects
 app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
 // Optional diagnostic logging of forwarded headers (enable via Logging:DebugForwardedHeaders=true)
+// Note: This logs RemoteIpAddress for debugging proxy/forwarding issues
 if (app.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
 {
+    var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+    var log = loggerFactory.CreateLogger<Program>();
     app.Use(async (ctx, next) =>
     {
-        var log = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
         var remoteIp = ctx.Connection.RemoteIpAddress?.ToString();
         var xfp = ctx.Request.Headers["X-Forwarded-Proto"].ToString();
         var xfh = ctx.Request.Headers["X-Forwarded-Host"].ToString();
