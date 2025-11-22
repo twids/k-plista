@@ -6,8 +6,18 @@ using KPlista.Api.Data;
 using KPlista.Api.Hubs;
 using KPlista.Api.Services;
 using Microsoft.AspNetCore.HttpOverrides;
+using Serilog;
+using Serilog.Context;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog bootstrap (early)
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("AppStartTimestamp", DateTimeOffset.UtcNow)
+    .CreateLogger();
+builder.Host.UseSerilog();
 
 // Remove Server header (Kestrel) for security information disclosure hardening
 builder.WebHost.UseKestrel(options =>
@@ -126,6 +136,18 @@ var app = builder.Build();
 // Security Headers Middleware (placed early)
 // Apply forwarded headers BEFORE generating security headers or auth redirects
 app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
+if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
+{
+    app.Use(async (ctx, next) =>
+    {
+        var remoteIp = ctx.Connection.RemoteIpAddress?.ToString();
+        var xfp = ctx.Request.Headers["X-Forwarded-Proto"].ToString();
+        var xfh = ctx.Request.Headers["X-Forwarded-Host"].ToString();
+        Log.Information("ForwardedHeadersCheck RemoteIp={RemoteIp} XForwardedProto={XForwardedProto} XForwardedHost={XForwardedHost} EffectiveScheme={Scheme} EffectiveHost={Host}",
+            remoteIp, xfp, xfh, ctx.Request.Scheme, ctx.Request.Host.ToString());
+        await next();
+    });
+}
 app.Use(async (context, next) =>
 {
     var headers = context.Response.Headers;
@@ -224,4 +246,42 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.Run();
+// Correlation/context logging
+app.Use(async (ctx, next) =>
+{
+    var correlationId = ctx.Request.Headers["X-Correlation-ID"].FirstOrDefault() ?? Guid.NewGuid().ToString();
+    ctx.Response.Headers["X-Correlation-ID"] = correlationId;
+    using (LogContext.PushProperty("CorrelationId", correlationId))
+    using (LogContext.PushProperty("RemoteIp", ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"))
+    using (LogContext.PushProperty("RequestPath", ctx.Request.Path.ToString()))
+    using (LogContext.PushProperty("RequestMethod", ctx.Request.Method))
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            await next();
+            sw.Stop();
+            Log.Information("HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs} ms", ctx.Request.Method, ctx.Request.Path, ctx.Response.StatusCode, sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            Log.Error(ex, "HTTP {Method} {Path} failed after {ElapsedMs} ms", ctx.Request.Method, ctx.Request.Path, sw.ElapsedMilliseconds);
+            throw;
+        }
+    }
+});
+
+try
+{
+    Log.Information("Starting KPlista.Api host");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Host terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
