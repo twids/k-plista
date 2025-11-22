@@ -35,6 +35,8 @@ import { ShareListDialog } from '../components/ShareListDialog';
 import { CreateGroupDialog } from '../components/CreateGroupDialog';
 import { useSignalR } from '../hooks/useSignalR';
 import signalRService from '../services/signalRService';
+import { useCountdownDelete } from '../hooks/useCountdownDelete';
+import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
 
 export const ListDetailPage = () => {
   const { listId } = useParams<{ listId: string }>();
@@ -48,6 +50,17 @@ export const ListDetailPage = () => {
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [openGroupDialog, setOpenGroupDialog] = useState(false);
   const [prefillGroupId, setPrefillGroupId] = useState<string | undefined>(undefined);
+
+  const handleDeleteItemAction = async (itemId: string) => {
+    if (!listId) return;
+    try {
+      await groceryItemService.delete(listId, itemId);
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+    }
+  };
+
+  const { countdownState, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteItemAction);
 
   const loadData = useCallback(async () => {
     if (!listId) return;
@@ -117,15 +130,8 @@ export const ListDetailPage = () => {
     }
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    if (!listId) return;
-    if (confirm('Are you sure you want to delete this item?')) {
-      try {
-        await groceryItemService.delete(listId, itemId);
-      } catch (error) {
-        console.error('Failed to delete item:', error);
-      }
-    }
+  const handleDeleteItem = async (itemId: string, itemName: string) => {
+    initiateDelete(itemId, `Deleting "${itemName}"`);
   };
 
   const handleAddItem = async (name: string, quantity: number, unit?: string, groupId?: string) => {
@@ -208,7 +214,7 @@ export const ListDetailPage = () => {
                       edge="end"
                       aria-label="delete"
                       size="small"
-                      onClick={() => handleDeleteItem(item.id)}
+                      onClick={() => handleDeleteItem(item.id, item.name)}
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -249,7 +255,7 @@ export const ListDetailPage = () => {
                     edge="end"
                     aria-label="delete"
                     size="small"
-                    onClick={() => handleDeleteItem(item.id)}
+                    onClick={() => handleDeleteItem(item.id, item.name)}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -378,6 +384,13 @@ export const ListDetailPage = () => {
         open={openGroupDialog}
         onClose={() => setOpenGroupDialog(false)}
         onCreate={handleCreateGroup}
+      />
+
+      <CountdownDeleteSnackbar
+        open={countdownState.isCountingDown}
+        message={countdownState.message}
+        countdown={countdownState.countdown}
+        onCancel={cancelDelete}
       />
     </Box>
   );
