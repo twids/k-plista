@@ -90,6 +90,7 @@ builder.Services.AddAuthentication(options =>
     cookieOptions.Cookie.Name = "external_auth";
     cookieOptions.Cookie.HttpOnly = true;
     cookieOptions.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    cookieOptions.Cookie.SameSite = SameSiteMode.Lax; // Allow cookie with OAuth redirects
     cookieOptions.ExpireTimeSpan = TimeSpan.FromMinutes(5); // short-lived
     cookieOptions.SlidingExpiration = false;
 })
