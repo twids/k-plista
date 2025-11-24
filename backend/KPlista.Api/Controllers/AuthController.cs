@@ -196,9 +196,14 @@ public class AuthController : ControllerBase
     [HttpGet("google-callback")]
     public async Task<IActionResult> GoogleCallback()
     {
+        _logger.LogInformation("GoogleCallback: Entered callback endpoint");
+        
         var result = await HttpContext.AuthenticateAsync("ExternalAuthCookie");
+        _logger.LogInformation("GoogleCallback: AuthenticateAsync result - Succeeded: {Succeeded}", result.Succeeded);
+        
         if (!result.Succeeded)
         {
+            _logger.LogWarning("GoogleCallback: Authentication failed, redirecting with error");
             // Clean up cookie before redirecting
             await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect("/?error=google_auth_failed");
@@ -234,6 +239,7 @@ public class AuthController : ControllerBase
             // Clean up temporary auth cookie
             await HttpContext.SignOutAsync("ExternalAuthCookie");
 
+            _logger.LogInformation("GoogleCallback: Success, redirecting to frontend with token");
             // Redirect to frontend with token as URL parameter (temporary solution)
             // In production, consider using secure cookies or a more secure method
             return Redirect($"/?token={token}&login_success=true");
