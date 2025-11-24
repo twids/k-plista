@@ -291,6 +291,9 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+// Enable endpoint routing before auth & endpoints
+app.UseRouting();
+
 // Serve static files from wwwroot (public frontend assets - CSS, JS, images)
 // Static files are served before authentication as they should be publicly accessible
 app.UseStaticFiles();
@@ -299,6 +302,7 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Map endpoints after routing/auth
 app.MapControllers();
 app.MapHub<ListHub>("/hubs/list");
 
