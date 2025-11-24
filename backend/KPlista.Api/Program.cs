@@ -127,8 +127,9 @@ builder.Services.AddAuthentication(options =>
     {
         OnCreatingTicket = context =>
         {
-            var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
-            Log.Information("OAuth Google: Creating ticket for {Email}", email);
+            var rawEmail = context.Principal?.FindFirst(ClaimTypes.Email)?.Value;
+            var maskedEmail = LogMasking.MaskEmail(rawEmail);
+            Log.Information("OAuth Google: Creating ticket for {Email}", maskedEmail);
             return Task.CompletedTask;
         },
         OnTicketReceived = async context =>
@@ -157,8 +158,9 @@ builder.Services.AddAuthentication(options =>
     {
         OnCreatingTicket = context =>
         {
-            var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
-            Log.Information("OAuth Facebook: Creating ticket for {Email}", email);
+            var rawEmail = context.Principal?.FindFirst(ClaimTypes.Email)?.Value;
+            var maskedEmail = LogMasking.MaskEmail(rawEmail);
+            Log.Information("OAuth Facebook: Creating ticket for {Email}", maskedEmail);
             return Task.CompletedTask;
         },
         OnTicketReceived = async context =>

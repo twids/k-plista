@@ -39,13 +39,14 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
 
         try
         {
+            var masked = LogMasking.MaskEmail(email);
             var user = await _db.Users.FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId, ct);
             if (user == null)
             {
                 var existingEmailUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
                 if (existingEmailUser != null && existingEmailUser.ExternalProvider != provider)
                 {
-                    _logger.LogWarning("ExternalAuth: Email {Email} already exists with different provider {Existing}", email, existingEmailUser.ExternalProvider);
+                    _logger.LogWarning("ExternalAuth: Email {Email} already exists with different provider {Existing}", masked, existingEmailUser.ExternalProvider);
                     return $"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingEmailUser.ExternalProvider}")}";
                 }
 
@@ -72,7 +73,7 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
 
             await _db.SaveChangesAsync(ct);
             var token = _jwt.GenerateToken(user.Id, user.Email, user.Name);
-            _logger.LogInformation("ExternalAuth: Provider {Provider} authenticated {Email}", provider, email);
+            _logger.LogInformation("ExternalAuth: Provider {Provider} authenticated {Email}", provider, masked);
             return $"/?token={token}&login_success=true";
         }
         catch (Exception ex)
