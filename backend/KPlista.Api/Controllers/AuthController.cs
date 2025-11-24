@@ -195,7 +195,7 @@ public class AuthController : ControllerBase
     [HttpGet("google-callback")]
     public async Task<IActionResult> GoogleCallback()
     {
-        var result = await HttpContext.AuthenticateAsync("Google");
+        var result = await HttpContext.AuthenticateAsync("ExternalAuthCookie");
         if (!result.Succeeded)
         {
             // Redirect to login page with error
@@ -228,6 +228,9 @@ public class AuthController : ControllerBase
             // Generate JWT token
             var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
 
+            // Clean up temporary auth cookie
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
+
             // Redirect to frontend with token as URL parameter (temporary solution)
             // In production, consider using secure cookies or a more secure method
             return Redirect($"/?token={token}&login_success=true");
@@ -236,12 +239,14 @@ public class AuthController : ControllerBase
         {
             // Handle email already exists with different provider
             _logger.LogError(ex, "Email already exists with different provider");
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect($"/?error=email_exists&message={Uri.EscapeDataString(ex.Message)}");
         }
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             // Handle race condition where unique constraint is violated
             _logger.LogWarning(ex, "Unique constraint violation during user creation");
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect("/?error=email_exists&message=An+account+with+this+email+already+exists");
         }
     }
@@ -259,7 +264,7 @@ public class AuthController : ControllerBase
     [HttpGet("facebook-callback")]
     public async Task<IActionResult> FacebookCallback()
     {
-        var result = await HttpContext.AuthenticateAsync("Facebook");
+        var result = await HttpContext.AuthenticateAsync("ExternalAuthCookie");
         if (!result.Succeeded)
         {
             return Redirect("/?error=facebook_auth_failed");
@@ -291,16 +296,21 @@ public class AuthController : ControllerBase
             // Generate JWT token
             var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
 
+            // Clean up temporary auth cookie
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
+
             return Redirect($"/?token={token}&login_success=true");
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Email already exists with different provider");
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect($"/?error=email_exists&message={Uri.EscapeDataString(ex.Message)}");
         }
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             _logger.LogWarning(ex, "Unique constraint violation during user creation");
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect("/?error=email_exists&message=An+account+with+this+email+already+exists");
         }
     }
