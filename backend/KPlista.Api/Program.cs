@@ -6,8 +6,17 @@ using KPlista.Api.Data;
 using KPlista.Api.Hubs;
 using KPlista.Api.Services;
 using Microsoft.AspNetCore.HttpOverrides;
+using Serilog;
+using Serilog.Context;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Serilog bootstrap (early)
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.WithProperty("AppStartTimestamp", DateTimeOffset.UtcNow)
+    .CreateLogger();
+builder.Host.UseSerilog();
 
 // Remove Server header (Kestrel) for security information disclosure hardening
 builder.WebHost.UseKestrel(options =>
@@ -51,8 +60,8 @@ builder.Services.AddDbContext<KPlistaDbContext>(options =>
 // Forwarded headers (reverse proxy TLS termination); DO NOT trust all proxies blindly.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    // Only what we need for HTTPS scheme + host reconstruction. Exclude XForwardedFor unless required.
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    // Include XForwardedFor to capture real client IP when behind a proxy
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedFor;
     // Limit how many entries are processed to mitigate header injection chains.
     options.ForwardLimit = 1;
     // Optional single trusted proxy IP from configuration (ReverseProxy:TrustedProxyIp)
@@ -124,6 +133,19 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Security Headers Middleware (placed early)
+// Debug forwarded headers BEFORE processing to log raw header values
+if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
+{
+    app.Use(async (ctx, next) =>
+    {
+        var remoteIp = ctx.Connection.RemoteIpAddress?.ToString();
+        var xfp = ctx.Request.Headers["X-Forwarded-Proto"].ToString();
+        var xfh = ctx.Request.Headers["X-Forwarded-Host"].ToString();
+        Log.Information("ForwardedHeadersCheck RemoteIp={RemoteIp} XForwardedProto={XForwardedProto} XForwardedHost={XForwardedHost} EffectiveScheme={Scheme} EffectiveHost={Host}",
+            remoteIp, xfp, xfh, ctx.Request.Scheme, ctx.Request.Host.ToString());
+        await next();
+    });
+}
 // Apply forwarded headers BEFORE generating security headers or auth redirects
 app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
 app.Use(async (context, next) =>
@@ -175,6 +197,43 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Correlation/context logging
+app.Use(async (ctx, next) =>
+{
+    var correlationId = ctx.Request.Headers["X-Correlation-ID"].FirstOrDefault() ?? Guid.NewGuid().ToString();
+    ctx.Response.Headers["X-Correlation-ID"] = correlationId;
+    using (LogContext.PushProperty("CorrelationId", correlationId))
+    using (LogContext.PushProperty("RemoteIp", ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"))
+    using (LogContext.PushProperty("RequestPath", ctx.Request.Path.ToString()))
+    using (LogContext.PushProperty("RequestMethod", ctx.Request.Method))
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            await next();
+            sw.Stop();
+            // Filter out successful static file requests from info-level logs
+            var path = ctx.Request.Path;
+            var isStaticFile = path.StartsWithSegments("/css") ||
+                               path.StartsWithSegments("/js") ||
+                               path.StartsWithSegments("/images") ||
+                               path.StartsWithSegments("/lib") ||
+                               path.StartsWithSegments("/static") ||
+                               path.StartsWithSegments("/favicon.ico");
+            if (!isStaticFile || ctx.Response.StatusCode >= 400)
+            {
+                Log.Information("HTTP request responded {StatusCode} in {ElapsedMs} ms", ctx.Response.StatusCode, sw.ElapsedMilliseconds);
+            }
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            Log.Error(ex, "HTTP request failed after {ElapsedMs} ms", sw.ElapsedMilliseconds);
+            throw;
+        }
+    }
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -224,4 +283,16 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.Run();
+try
+{
+    Log.Information("Starting KPlista.Api host");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Host terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
