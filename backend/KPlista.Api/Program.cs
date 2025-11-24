@@ -28,6 +28,7 @@ builder.WebHost.UseKestrel(options =>
 
 // Add services to the container.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IExternalAuthProcessor, ExternalAuthProcessor>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -132,80 +133,10 @@ builder.Services.AddAuthentication(options =>
         },
         OnTicketReceived = async context =>
         {
-            var dbContext = context.HttpContext.RequestServices.GetRequiredService<KPlistaDbContext>();
-            var jwtTokenService = context.HttpContext.RequestServices.GetRequiredService<IJwtTokenService>();
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-
-            var claims = context.Principal?.Claims;
-            var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-            var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-            var externalUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            var pictureUrl = claims?.FirstOrDefault(c => c.Type == "picture")?.Value;
-
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
-            {
-                logger.LogWarning("OAuth Google: Missing required claims");
-                context.Response.Redirect("/?error=invalid_user_data");
-                context.HandleResponse();
-                return;
-            }
-
-            try
-            {
-                // Find or create user
-                var user = await dbContext.Users
-                    .FirstOrDefaultAsync(u => u.ExternalProvider == "Google" && u.ExternalUserId == externalUserId);
-
-                if (user == null)
-                {
-                    // Check if email exists with different provider
-                    var existingUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-                    if (existingUser != null && existingUser.ExternalProvider != "Google")
-                    {
-                        logger.LogWarning("OAuth Google: Email {Email} already exists with different provider", email);
-                        context.Response.Redirect($"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingUser.ExternalProvider}")}");
-                        context.HandleResponse();
-                        return;
-                    }
-
-                    user = new User
-                    {
-                        Id = Guid.NewGuid(),
-                        Email = email,
-                        Name = name ?? email,
-                        ProfilePictureUrl = pictureUrl,
-                        ExternalProvider = "Google",
-                        ExternalUserId = externalUserId,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-                    dbContext.Users.Add(user);
-                }
-                else
-                {
-                    // Update existing user
-                    user.Email = email;
-                    user.Name = name ?? email;
-                    user.ProfilePictureUrl = pictureUrl;
-                    user.UpdatedAt = DateTime.UtcNow;
-                }
-
-                await dbContext.SaveChangesAsync();
-
-                // Generate JWT
-                var token = jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
-                logger.LogInformation("OAuth Google: Successfully authenticated {Email}, redirecting to frontend", email);
-
-                // Redirect to frontend with token
-                context.Response.Redirect($"/?token={token}&login_success=true");
-                context.HandleResponse();
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "OAuth Google: Error processing authentication");
-                context.Response.Redirect("/?error=authentication_error");
-                context.HandleResponse();
-            }
+            var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
+            var redirect = await processor.ProcessAsync("Google", context.Principal!);
+            context.Response.Redirect(redirect);
+            context.HandleResponse();
         },
         OnRemoteFailure = context =>
         {
@@ -232,75 +163,10 @@ builder.Services.AddAuthentication(options =>
         },
         OnTicketReceived = async context =>
         {
-            var dbContext = context.HttpContext.RequestServices.GetRequiredService<KPlistaDbContext>();
-            var jwtTokenService = context.HttpContext.RequestServices.GetRequiredService<IJwtTokenService>();
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-
-            var claims = context.Principal?.Claims;
-            var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-            var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-            var externalUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            var pictureUrl = claims?.FirstOrDefault(c => c.Type == "picture")?.Value;
-
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
-            {
-                logger.LogWarning("OAuth Facebook: Missing required claims");
-                context.Response.Redirect("/?error=invalid_user_data");
-                context.HandleResponse();
-                return;
-            }
-
-            try
-            {
-                var user = await dbContext.Users
-                    .FirstOrDefaultAsync(u => u.ExternalProvider == "Facebook" && u.ExternalUserId == externalUserId);
-
-                if (user == null)
-                {
-                    var existingUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-                    if (existingUser != null && existingUser.ExternalProvider != "Facebook")
-                    {
-                        logger.LogWarning("OAuth Facebook: Email {Email} already exists with different provider", email);
-                        context.Response.Redirect($"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingUser.ExternalProvider}")}");
-                        context.HandleResponse();
-                        return;
-                    }
-
-                    user = new User
-                    {
-                        Id = Guid.NewGuid(),
-                        Email = email,
-                        Name = name ?? email,
-                        ProfilePictureUrl = pictureUrl,
-                        ExternalProvider = "Facebook",
-                        ExternalUserId = externalUserId,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-                    dbContext.Users.Add(user);
-                }
-                else
-                {
-                    user.Email = email;
-                    user.Name = name ?? email;
-                    user.ProfilePictureUrl = pictureUrl;
-                    user.UpdatedAt = DateTime.UtcNow;
-                }
-
-                await dbContext.SaveChangesAsync();
-
-                var token = jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
-                logger.LogInformation("OAuth Facebook: Successfully authenticated {Email}, redirecting to frontend", email);
-
-                context.Response.Redirect($"/?token={token}&login_success=true");
-                context.HandleResponse();
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "OAuth Facebook: Error processing authentication");
-                context.Response.Redirect("/?error=authentication_error");
-                context.HandleResponse();
-            }
+            var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
+            var redirect = await processor.ProcessAsync("Facebook", context.Principal!);
+            context.Response.Redirect(redirect);
+            context.HandleResponse();
         },
         OnRemoteFailure = context =>
         {
