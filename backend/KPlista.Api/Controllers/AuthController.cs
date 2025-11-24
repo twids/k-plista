@@ -186,6 +186,7 @@ public class AuthController : ControllerBase
     [HttpGet("google")]
     public IActionResult LoginGoogle()
     {
+        _logger.LogInformation("AuthController: Initiating Google OAuth challenge");
         // Explicit callback path defined in Program.cs (options.CallbackPath)
         // Challenge without custom RedirectUri; callback endpoint handles final redirect to frontend
         return Challenge(new AuthenticationProperties(), "Google");
@@ -255,6 +256,7 @@ public class AuthController : ControllerBase
     [HttpGet("facebook")]
     public IActionResult LoginFacebook()
     {
+        _logger.LogInformation("AuthController: Initiating Facebook OAuth challenge");
         // Explicit callback path defined in Program.cs (options.CallbackPath)
         // Challenge without custom RedirectUri; callback endpoint handles final redirect to frontend
         return Challenge(new AuthenticationProperties(), "Facebook");
