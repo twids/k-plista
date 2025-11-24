@@ -133,11 +133,6 @@ builder.Services.AddAuthentication(options =>
     options.CallbackPath = "/api/auth/google-callback"; // our controller will issue JWT
     options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
     {
-        OnRedirectToAuthorizationEndpoint = context =>
-        {
-            Log.Information("OAuth Google: Redirecting to provider {RedirectUri}", context.RedirectUri);
-            return Task.CompletedTask;
-        },
         OnCreatingTicket = context =>
         {
             var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
@@ -162,11 +157,6 @@ builder.Services.AddAuthentication(options =>
     options.CallbackPath = "/api/auth/facebook-callback";
     options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
     {
-        OnRedirectToAuthorizationEndpoint = context =>
-        {
-            Log.Information("OAuth Facebook: Redirecting to provider {RedirectUri}", context.RedirectUri);
-            return Task.CompletedTask;
-        },
         OnCreatingTicket = context =>
         {
             var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
