@@ -5,6 +5,7 @@ using System.Text;
 using System.Security.Claims;
 using KPlista.Api.Data;
 using KPlista.Api.Hubs;
+using KPlista.Api.Models;
 using KPlista.Api.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
@@ -81,19 +82,9 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "kplista-app";
 
 builder.Services.AddAuthentication(options =>
 {
-    // JWT for API auth; cookie only for external provider interim storage
+    // JWT for API auth
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-// Ephemeral cookie used only to capture external provider principal before issuing JWT
-.AddCookie("ExternalAuthCookie", cookieOptions =>
-{
-    cookieOptions.Cookie.Name = "external_auth";
-    cookieOptions.Cookie.HttpOnly = true;
-    cookieOptions.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    cookieOptions.Cookie.SameSite = SameSiteMode.Lax; // Allow cookie with OAuth redirects
-    cookieOptions.ExpireTimeSpan = TimeSpan.FromMinutes(5); // short-lived
-    cookieOptions.SlidingExpiration = false;
 })
 .AddJwtBearer(options =>
 {
@@ -129,8 +120,8 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.SignInScheme = "ExternalAuthCookie"; // where remote handler stores principal
-    options.CallbackPath = "/api/auth/google-callback"; // our controller will issue JWT
+    options.CallbackPath = "/signin-google"; // Standard OAuth callback path
+    options.SaveTokens = false; // We're issuing our own JWT
     options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
     {
         OnCreatingTicket = context =>
@@ -139,10 +130,86 @@ builder.Services.AddAuthentication(options =>
             Log.Information("OAuth Google: Creating ticket for {Email}", email);
             return Task.CompletedTask;
         },
+        OnTicketReceived = async context =>
+        {
+            var dbContext = context.HttpContext.RequestServices.GetRequiredService<KPlistaDbContext>();
+            var jwtTokenService = context.HttpContext.RequestServices.GetRequiredService<IJwtTokenService>();
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+
+            var claims = context.Principal?.Claims;
+            var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+            var externalUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var pictureUrl = claims?.FirstOrDefault(c => c.Type == "picture")?.Value;
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
+            {
+                logger.LogWarning("OAuth Google: Missing required claims");
+                context.Response.Redirect("/?error=invalid_user_data");
+                context.HandleResponse();
+                return;
+            }
+
+            try
+            {
+                // Find or create user
+                var user = await dbContext.Users
+                    .FirstOrDefaultAsync(u => u.ExternalProvider == "Google" && u.ExternalUserId == externalUserId);
+
+                if (user == null)
+                {
+                    // Check if email exists with different provider
+                    var existingUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+                    if (existingUser != null && existingUser.ExternalProvider != "Google")
+                    {
+                        logger.LogWarning("OAuth Google: Email {Email} already exists with different provider", email);
+                        context.Response.Redirect($"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingUser.ExternalProvider}")}");
+                        context.HandleResponse();
+                        return;
+                    }
+
+                    user = new User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = email,
+                        Name = name ?? email,
+                        ProfilePictureUrl = pictureUrl,
+                        ExternalProvider = "Google",
+                        ExternalUserId = externalUserId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    dbContext.Users.Add(user);
+                }
+                else
+                {
+                    // Update existing user
+                    user.Email = email;
+                    user.Name = name ?? email;
+                    user.ProfilePictureUrl = pictureUrl;
+                    user.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await dbContext.SaveChangesAsync();
+
+                // Generate JWT
+                var token = jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
+                logger.LogInformation("OAuth Google: Successfully authenticated {Email}, redirecting to frontend", email);
+
+                // Redirect to frontend with token
+                context.Response.Redirect($"/?token={token}&login_success=true");
+                context.HandleResponse();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "OAuth Google: Error processing authentication");
+                context.Response.Redirect("/?error=authentication_error");
+                context.HandleResponse();
+            }
+        },
         OnRemoteFailure = context =>
         {
             Log.Error(context.Failure, "OAuth Google: Remote failure during external login");
-            // Avoid triggering a new challenge loop; surface error to frontend
             context.Response.Redirect("/?error=google_remote_failure");
             context.HandleResponse();
             return Task.CompletedTask;
@@ -153,8 +220,8 @@ builder.Services.AddAuthentication(options =>
 {
     options.AppId = builder.Configuration["Authentication:Facebook:AppId"] ?? "";
     options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? "";
-    options.SignInScheme = "ExternalAuthCookie";
-    options.CallbackPath = "/api/auth/facebook-callback";
+    options.CallbackPath = "/signin-facebook"; // Standard OAuth callback path
+    options.SaveTokens = false;
     options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
     {
         OnCreatingTicket = context =>
@@ -162,6 +229,78 @@ builder.Services.AddAuthentication(options =>
             var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
             Log.Information("OAuth Facebook: Creating ticket for {Email}", email);
             return Task.CompletedTask;
+        },
+        OnTicketReceived = async context =>
+        {
+            var dbContext = context.HttpContext.RequestServices.GetRequiredService<KPlistaDbContext>();
+            var jwtTokenService = context.HttpContext.RequestServices.GetRequiredService<IJwtTokenService>();
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+
+            var claims = context.Principal?.Claims;
+            var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+            var externalUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var pictureUrl = claims?.FirstOrDefault(c => c.Type == "picture")?.Value;
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
+            {
+                logger.LogWarning("OAuth Facebook: Missing required claims");
+                context.Response.Redirect("/?error=invalid_user_data");
+                context.HandleResponse();
+                return;
+            }
+
+            try
+            {
+                var user = await dbContext.Users
+                    .FirstOrDefaultAsync(u => u.ExternalProvider == "Facebook" && u.ExternalUserId == externalUserId);
+
+                if (user == null)
+                {
+                    var existingUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+                    if (existingUser != null && existingUser.ExternalProvider != "Facebook")
+                    {
+                        logger.LogWarning("OAuth Facebook: Email {Email} already exists with different provider", email);
+                        context.Response.Redirect($"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingUser.ExternalProvider}")}");
+                        context.HandleResponse();
+                        return;
+                    }
+
+                    user = new User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = email,
+                        Name = name ?? email,
+                        ProfilePictureUrl = pictureUrl,
+                        ExternalProvider = "Facebook",
+                        ExternalUserId = externalUserId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    dbContext.Users.Add(user);
+                }
+                else
+                {
+                    user.Email = email;
+                    user.Name = name ?? email;
+                    user.ProfilePictureUrl = pictureUrl;
+                    user.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await dbContext.SaveChangesAsync();
+
+                var token = jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
+                logger.LogInformation("OAuth Facebook: Successfully authenticated {Email}, redirecting to frontend", email);
+
+                context.Response.Redirect($"/?token={token}&login_success=true");
+                context.HandleResponse();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "OAuth Facebook: Error processing authentication");
+                context.Response.Redirect("/?error=authentication_error");
+                context.HandleResponse();
+            }
         },
         OnRemoteFailure = context =>
         {
