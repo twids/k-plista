@@ -267,6 +267,7 @@ public class AuthController : ControllerBase
         var result = await HttpContext.AuthenticateAsync("ExternalAuthCookie");
         if (!result.Succeeded)
         {
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect("/?error=facebook_auth_failed");
         }
 
