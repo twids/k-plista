@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 using KPlista.Api.Data;
 using KPlista.Api.Hubs;
 using KPlista.Api.Services;
@@ -130,6 +131,28 @@ builder.Services.AddAuthentication(options =>
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
     options.SignInScheme = "ExternalAuthCookie"; // where remote handler stores principal
     options.CallbackPath = "/api/auth/google-callback"; // our controller will issue JWT
+    options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
+    {
+        OnRedirectToAuthorizationEndpoint = context =>
+        {
+            Log.Information("OAuth Google: Redirecting to provider {RedirectUri}", context.RedirectUri);
+            return Task.CompletedTask;
+        },
+        OnCreatingTicket = context =>
+        {
+            var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
+            Log.Information("OAuth Google: Creating ticket for {Email}", email);
+            return Task.CompletedTask;
+        },
+        OnRemoteFailure = context =>
+        {
+            Log.Error(context.Failure, "OAuth Google: Remote failure during external login");
+            // Avoid triggering a new challenge loop; surface error to frontend
+            context.Response.Redirect("/?error=google_remote_failure");
+            context.HandleResponse();
+            return Task.CompletedTask;
+        }
+    };
 })
 .AddFacebook(options =>
 {
@@ -137,6 +160,27 @@ builder.Services.AddAuthentication(options =>
     options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? "";
     options.SignInScheme = "ExternalAuthCookie";
     options.CallbackPath = "/api/auth/facebook-callback";
+    options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
+    {
+        OnRedirectToAuthorizationEndpoint = context =>
+        {
+            Log.Information("OAuth Facebook: Redirecting to provider {RedirectUri}", context.RedirectUri);
+            return Task.CompletedTask;
+        },
+        OnCreatingTicket = context =>
+        {
+            var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
+            Log.Information("OAuth Facebook: Creating ticket for {Email}", email);
+            return Task.CompletedTask;
+        },
+        OnRemoteFailure = context =>
+        {
+            Log.Error(context.Failure, "OAuth Facebook: Remote failure during external login");
+            context.Response.Redirect("/?error=facebook_remote_failure");
+            context.HandleResponse();
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
