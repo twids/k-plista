@@ -29,6 +29,7 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
         var email = principal.FindFirst(ClaimTypes.Email)?.Value;
         var name = principal.FindFirst(ClaimTypes.Name)?.Value;
         var externalUserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var maskedExternalId = LogMasking.MaskExternalId(externalUserId);
         var pictureUrl = principal.FindFirst("picture")?.Value;
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
@@ -46,7 +47,7 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
                 var existingEmailUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
                 if (existingEmailUser != null && existingEmailUser.ExternalProvider != provider)
                 {
-                    _logger.LogWarning("ExternalAuth: Email {Email} already exists with different provider {Existing}", masked, existingEmailUser.ExternalProvider);
+                    _logger.LogWarning("ExternalAuth: Email {Email} already exists with different provider {Existing} (extId {ExternalId})", masked, existingEmailUser.ExternalProvider, maskedExternalId);
                     return $"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingEmailUser.ExternalProvider}")}";
                 }
 
@@ -73,12 +74,12 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
 
             await _db.SaveChangesAsync(ct);
             var token = _jwt.GenerateToken(user.Id, user.Email, user.Name);
-            _logger.LogInformation("ExternalAuth: Provider {Provider} authenticated {Email}", provider, masked);
+            _logger.LogInformation("ExternalAuth: Provider {Provider} authenticated {Email} (extId {ExternalId})", provider, masked, maskedExternalId);
             return $"/?token={token}&login_success=true";
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "ExternalAuth: Error authenticating provider {Provider}", provider);
+            _logger.LogError(ex, "ExternalAuth: Error authenticating provider {Provider} (extId {ExternalId})", provider, maskedExternalId);
             return "/?error=authentication_error";
         }
     }

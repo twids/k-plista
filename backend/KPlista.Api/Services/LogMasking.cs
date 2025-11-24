@@ -21,4 +21,14 @@ public static class LogMasking
         }
         return maskedLocal + "@" + domain;
     }
+
+    public static string MaskExternalId(string? externalId)
+    {
+        if (string.IsNullOrWhiteSpace(externalId)) return "(no external id)";
+        // Preserve first 4 chars and last 2 if long enough
+        if (externalId.Length <= 6) return externalId[0] + "***" + externalId[^1];
+        var prefix = externalId.Substring(0, 4);
+        var suffix = externalId.Substring(externalId.Length - 2);
+        return prefix + new string('*', externalId.Length - 6) + suffix;
+    }
 }
