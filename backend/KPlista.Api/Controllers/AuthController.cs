@@ -187,11 +187,7 @@ public class AuthController : ControllerBase
     public IActionResult LoginGoogle()
     {
         _logger.LogInformation("AuthController: Initiating Google OAuth challenge");
-        var properties = new AuthenticationProperties
-        {
-            RedirectUri = "/" // OAuth middleware OnTicketReceived will handle JWT and redirect
-        };
-        return Challenge(properties, "Google");
+        return Challenge(new AuthenticationProperties(), "Google");
     }
 
     // GET: api/auth/facebook
@@ -199,11 +195,7 @@ public class AuthController : ControllerBase
     public IActionResult LoginFacebook()
     {
         _logger.LogInformation("AuthController: Initiating Facebook OAuth challenge");
-        var properties = new AuthenticationProperties
-        {
-            RedirectUri = "/"
-        };
-        return Challenge(properties, "Facebook");
+        return Challenge(new AuthenticationProperties(), "Facebook");
     }
 }
 
