@@ -199,7 +199,8 @@ public class AuthController : ControllerBase
         var result = await HttpContext.AuthenticateAsync("ExternalAuthCookie");
         if (!result.Succeeded)
         {
-            // Redirect to login page with error
+            // Clean up cookie before redirecting
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect("/?error=google_auth_failed");
         }
 
@@ -211,6 +212,7 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect("/?error=invalid_user_data");
         }
 
@@ -281,6 +283,7 @@ public class AuthController : ControllerBase
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
+            await HttpContext.SignOutAsync("ExternalAuthCookie");
             return Redirect("/?error=invalid_user_data");
         }
 
