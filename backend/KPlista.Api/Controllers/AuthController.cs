@@ -187,71 +187,7 @@ public class AuthController : ControllerBase
     public IActionResult LoginGoogle()
     {
         _logger.LogInformation("AuthController: Initiating Google OAuth challenge");
-        // Explicit callback path defined in Program.cs (options.CallbackPath)
-        // Challenge without custom RedirectUri; callback endpoint handles final redirect to frontend
         return Challenge(new AuthenticationProperties(), "Google");
-    }
-
-    // GET: api/auth/google-callback
-    [HttpGet("google-callback")]
-    public async Task<IActionResult> GoogleCallback()
-    {
-        var result = await HttpContext.AuthenticateAsync("ExternalAuthCookie");
-        if (!result.Succeeded)
-        {
-            // Clean up cookie before redirecting
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-            return Redirect("/?error=google_auth_failed");
-        }
-
-        var claims = result.Principal?.Claims;
-        var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-        var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-        var externalUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-        var pictureUrl = claims?.FirstOrDefault(c => c.Type == "picture")?.Value;
-
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
-        {
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-            return Redirect("/?error=invalid_user_data");
-        }
-
-        try
-        {
-            var user = await GetOrCreateUserAsync(
-                "Google",
-                externalUserId,
-                email,
-                name ?? email,
-                pictureUrl
-            );
-
-            await _context.SaveChangesAsync();
-
-            // Generate JWT token
-            var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
-
-            // Clean up temporary auth cookie
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-
-            // Redirect to frontend with token as URL parameter (temporary solution)
-            // In production, consider using secure cookies or a more secure method
-            return Redirect($"/?token={token}&login_success=true");
-        }
-        catch (InvalidOperationException ex)
-        {
-            // Handle email already exists with different provider
-            _logger.LogError(ex, "Email already exists with different provider");
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-            return Redirect($"/?error=email_exists&message={Uri.EscapeDataString(ex.Message)}");
-        }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
-        {
-            // Handle race condition where unique constraint is violated
-            _logger.LogWarning(ex, "Unique constraint violation during user creation");
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-            return Redirect("/?error=email_exists&message=An+account+with+this+email+already+exists");
-        }
     }
 
     // GET: api/auth/facebook
@@ -259,66 +195,7 @@ public class AuthController : ControllerBase
     public IActionResult LoginFacebook()
     {
         _logger.LogInformation("AuthController: Initiating Facebook OAuth challenge");
-        // Explicit callback path defined in Program.cs (options.CallbackPath)
-        // Challenge without custom RedirectUri; callback endpoint handles final redirect to frontend
         return Challenge(new AuthenticationProperties(), "Facebook");
-    }
-
-    // GET: api/auth/facebook-callback
-    [HttpGet("facebook-callback")]
-    public async Task<IActionResult> FacebookCallback()
-    {
-        var result = await HttpContext.AuthenticateAsync("ExternalAuthCookie");
-        if (!result.Succeeded)
-        {
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-            return Redirect("/?error=facebook_auth_failed");
-        }
-
-        var claims = result.Principal?.Claims;
-        var email = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-        var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
-        var externalUserId = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-        var pictureUrl = claims?.FirstOrDefault(c => c.Type == "picture")?.Value;
-
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
-        {
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-            return Redirect("/?error=invalid_user_data");
-        }
-
-        try
-        {
-            var user = await GetOrCreateUserAsync(
-                "Facebook",
-                externalUserId,
-                email,
-                name ?? email,
-                pictureUrl
-            );
-
-            await _context.SaveChangesAsync();
-
-            // Generate JWT token
-            var token = _jwtTokenService.GenerateToken(user.Id, user.Email, user.Name);
-
-            // Clean up temporary auth cookie
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-
-            return Redirect($"/?token={token}&login_success=true");
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogError(ex, "Email already exists with different provider");
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-            return Redirect($"/?error=email_exists&message={Uri.EscapeDataString(ex.Message)}");
-        }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
-        {
-            _logger.LogWarning(ex, "Unique constraint violation during user creation");
-            await HttpContext.SignOutAsync("ExternalAuthCookie");
-            return Redirect("/?error=email_exists&message=An+account+with+this+email+already+exists");
-        }
     }
 }
 
