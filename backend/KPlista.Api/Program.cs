@@ -141,8 +141,9 @@ if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
         var remoteIp = ctx.Connection.RemoteIpAddress?.ToString();
         var xfp = ctx.Request.Headers["X-Forwarded-Proto"].ToString();
         var xfh = ctx.Request.Headers["X-Forwarded-Host"].ToString();
-        Log.Information("ForwardedHeadersCheck RemoteIp={RemoteIp} XForwardedProto={XForwardedProto} XForwardedHost={XForwardedHost} EffectiveScheme={Scheme} EffectiveHost={Host}",
-            remoteIp, xfp, xfh, ctx.Request.Scheme, ctx.Request.Host.ToString());
+        var xff = ctx.Request.Headers["X-Forwarded-For"].ToString();
+        Log.Information("ForwardedHeadersCheck RemoteIp={RemoteIp} XForwardedFor={XForwardedFor} XForwardedProto={XForwardedProto} XForwardedHost={XForwardedHost} EffectiveScheme={Scheme} EffectiveHost={Host}",
+            remoteIp, xff, xfp, xfh, ctx.Request.Scheme, ctx.Request.Host.ToString());
         await next();
     });
 }
@@ -153,8 +154,10 @@ if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
 {
     app.Use(async (ctx, next) =>
     {
-        Log.Information("ForwardedHeadersPost RemoteIp={RemoteIp} EffectiveScheme={Scheme} EffectiveHost={Host}",
-            ctx.Connection.RemoteIpAddress?.ToString(), ctx.Request.Scheme, ctx.Request.Host.ToString());
+        var postRemoteIp = ctx.Connection.RemoteIpAddress?.ToString();
+        var postXff = ctx.Request.Headers["X-Forwarded-For"].ToString();
+        Log.Information("ForwardedHeadersPost ClientIp={ClientIp} XForwardedFor={XForwardedFor} EffectiveScheme={Scheme} EffectiveHost={Host}",
+            postRemoteIp, postXff, ctx.Request.Scheme, ctx.Request.Host.ToString());
         await next();
     });
 }
