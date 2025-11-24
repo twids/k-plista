@@ -148,6 +148,16 @@ if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
 }
 // Apply forwarded headers BEFORE generating security headers or auth redirects
 app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
+// Post-processing diagnostics (after applying forwarded headers) if enabled
+if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
+{
+    app.Use(async (ctx, next) =>
+    {
+        Log.Information("ForwardedHeadersPost RemoteIp={RemoteIp} EffectiveScheme={Scheme} EffectiveHost={Host}",
+            ctx.Connection.RemoteIpAddress?.ToString(), ctx.Request.Scheme, ctx.Request.Host.ToString());
+        await next();
+    });
+}
 app.Use(async (context, next) =>
 {
     var headers = context.Response.Headers;
