@@ -132,32 +132,10 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Security Headers Middleware (placed early)
-// Debug forwarded headers BEFORE processing to log raw header values
-if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
-{
-    app.Use(async (ctx, next) =>
-    {
-        var remoteIp = ctx.Connection.RemoteIpAddress?.ToString();
-        var xfp = ctx.Request.Headers["X-Forwarded-Proto"].ToString();
-        var xfh = ctx.Request.Headers["X-Forwarded-Host"].ToString();
-        Log.Information("ForwardedHeadersCheck RemoteIp={RemoteIp} XForwardedProto={XForwardedProto} XForwardedHost={XForwardedHost} EffectiveScheme={Scheme} EffectiveHost={Host}",
-            remoteIp, xfp, xfh, ctx.Request.Scheme, ctx.Request.Host.ToString());
-        await next();
-    });
-}
 // Apply forwarded headers BEFORE generating security headers or auth redirects
 app.UseForwardedHeaders(); // Processes X-Forwarded-Proto/Host (and only first value)
-// Post-processing diagnostics (after applying forwarded headers) if enabled
-if (builder.Configuration.GetValue<bool>("Logging:DebugForwardedHeaders"))
-{
-    app.Use(async (ctx, next) =>
-    {
-        Log.Information("ForwardedHeadersPost RemoteIp={RemoteIp} EffectiveScheme={Scheme} EffectiveHost={Host}",
-            ctx.Connection.RemoteIpAddress?.ToString(), ctx.Request.Scheme, ctx.Request.Host.ToString());
-        await next();
-    });
-}
+
+// Security Headers Middleware (placed early)
 app.Use(async (context, next) =>
 {
     var headers = context.Response.Headers;

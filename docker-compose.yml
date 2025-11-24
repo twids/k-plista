@@ -31,8 +31,6 @@ services:
       Jwt__Secret: "${JWT_SECRET:-your-secret-key-min-32-characters-long-for-security-please-change-in-production}"
       Jwt__Issuer: "${JWT_ISSUER:-koplista-api}"
       Jwt__Audience: "${JWT_AUDIENCE:-koplista-app}"
-      # Enable forwarded headers diagnostic logging (raw + post-processed)
-      Logging__DebugForwardedHeaders: "true"
     ports:
       - "80:8080"
     depends_on:
