@@ -167,24 +167,24 @@ builder.Services.AddAuthentication(options =>
     options.SaveTokens = false;
     options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
     {
-            OnCreatingTicket = ctx =>
+        OnCreatingTicket = ctx =>
+        {
+            var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
+            var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (email != null || externalId != null)
             {
-                var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
-                var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (email != null || externalId != null)
+                var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
+                if (email != null)
                 {
-                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
-                    if (email != null)
-                    {
-                        logger.LogInformation("Facebook CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
-                    }
-                    else
-                    {
-                        logger.LogInformation("Facebook CreatingTicket extId {ExternalId}", LogMasking.MaskExternalId(externalId));
-                    }
+                    logger.LogInformation("Facebook CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
                 }
-                return Task.CompletedTask;
-            },
+                else
+                {
+                    logger.LogInformation("Facebook CreatingTicket extId {ExternalId}", LogMasking.MaskExternalId(externalId));
+                }
+            }
+            return Task.CompletedTask;
+        },
         OnTicketReceived = async context =>
         {
             if (context.Principal == null)
