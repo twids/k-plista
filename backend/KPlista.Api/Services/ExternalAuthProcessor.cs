@@ -72,7 +72,23 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
                 user.UpdatedAt = DateTime.UtcNow;
             }
 
-            await _db.SaveChangesAsync(ct);
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Possible unique constraint violation due to race condition
+                _logger.LogWarning(dbEx, "ExternalAuth: DbUpdateException, possible race condition for provider {Provider} (extId {ExternalId})", provider, maskedExternalId);
+                // Try to fetch the user again
+                user = await _db.Users.FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId, ct);
+                if (user == null)
+                {
+                    // Still not found, rethrow
+                    throw;
+                }
+                // else: user now exists, proceed
+            }
             var token = _jwt.GenerateToken(user.Id, user.Email, user.Name);
             _logger.LogInformation("ExternalAuth: Provider {Provider} authenticated {Email} (extId {ExternalId})", provider, masked, maskedExternalId);
             return $"/?token={token}&login_success=true";
