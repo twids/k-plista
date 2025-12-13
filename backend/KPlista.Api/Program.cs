@@ -5,6 +5,7 @@ using System.Text;
 using System.Security.Claims;
 using KPlista.Api.Data;
 using KPlista.Api.Hubs;
+using KPlista.Api.Models;
 using KPlista.Api.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
@@ -27,6 +28,7 @@ builder.WebHost.UseKestrel(options =>
 
 // Add services to the container.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IExternalAuthProcessor, ExternalAuthProcessor>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -81,19 +83,9 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "kplista-app";
 
 builder.Services.AddAuthentication(options =>
 {
-    // JWT for API auth; cookie only for external provider interim storage
+    // JWT for API auth
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-// Ephemeral cookie used only to capture external provider principal before issuing JWT
-.AddCookie("ExternalAuthCookie", cookieOptions =>
-{
-    cookieOptions.Cookie.Name = "external_auth";
-    cookieOptions.Cookie.HttpOnly = true;
-    cookieOptions.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    cookieOptions.Cookie.SameSite = SameSiteMode.Lax; // Allow cookie with OAuth redirects
-    cookieOptions.ExpireTimeSpan = TimeSpan.FromMinutes(5); // short-lived
-    cookieOptions.SlidingExpiration = false;
 })
 .AddJwtBearer(options =>
 {
@@ -129,20 +121,38 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.SignInScheme = "ExternalAuthCookie"; // where remote handler stores principal
-    options.CallbackPath = "/api/auth/google-callback"; // our controller will issue JWT
+    options.CallbackPath = "/signin-google"; // Standard OAuth callback path
+    options.SaveTokens = false; // We're issuing our own JWT
     options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
     {
-        OnCreatingTicket = context =>
+        OnCreatingTicket = ctx =>
         {
-            var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
-            Log.Information("OAuth Google: Creating ticket for {Email}", email);
+            var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
+            var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (email != null || externalId != null)
+            {
+                var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
+                if (email != null)
+                {
+                    logger.LogInformation("Google CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
+                }
+                else
+                {
+                    logger.LogInformation("Google CreatingTicket extId {ExternalId}", LogMasking.MaskExternalId(externalId));
+                }
+            }
             return Task.CompletedTask;
+        },
+        OnTicketReceived = async context =>
+        {
+            var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
+            var redirect = await processor.ProcessAsync("Google", context.Principal!);
+            context.Response.Redirect(redirect);
+            context.HandleResponse();
         },
         OnRemoteFailure = context =>
         {
             Log.Error(context.Failure, "OAuth Google: Remote failure during external login");
-            // Avoid triggering a new challenge loop; surface error to frontend
             context.Response.Redirect("/?error=google_remote_failure");
             context.HandleResponse();
             return Task.CompletedTask;
@@ -153,15 +163,42 @@ builder.Services.AddAuthentication(options =>
 {
     options.AppId = builder.Configuration["Authentication:Facebook:AppId"] ?? "";
     options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? "";
-    options.SignInScheme = "ExternalAuthCookie";
-    options.CallbackPath = "/api/auth/facebook-callback";
+    options.CallbackPath = "/signin-facebook"; // Standard OAuth callback path
+    options.SaveTokens = false;
     options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
     {
-        OnCreatingTicket = context =>
+        OnCreatingTicket = ctx =>
         {
-            var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value ?? "(no email)";
-            Log.Information("OAuth Facebook: Creating ticket for {Email}", email);
+            var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
+            var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (email != null || externalId != null)
+            {
+                var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
+                if (email != null)
+                {
+                    logger.LogInformation("Facebook CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
+                }
+                else
+                {
+                    logger.LogInformation("Facebook CreatingTicket extId {ExternalId}", LogMasking.MaskExternalId(externalId));
+                }
+            }
             return Task.CompletedTask;
+        },
+        OnTicketReceived = async context =>
+        {
+            if (context.Principal == null)
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
+                logger.LogError("OAuth Facebook: Principal is null during ticket reception");
+                context.Response.Redirect("/?error=facebook_principal_null");
+                context.HandleResponse();
+                return;
+            }
+            var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
+            var redirect = await processor.ProcessAsync("Facebook", context.Principal);
+            context.Response.Redirect(redirect);
+            context.HandleResponse();
         },
         OnRemoteFailure = context =>
         {
