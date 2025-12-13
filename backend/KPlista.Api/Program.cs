@@ -187,8 +187,16 @@ builder.Services.AddAuthentication(options =>
             },
         OnTicketReceived = async context =>
         {
+            if (context.Principal == null)
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
+                logger.LogError("OAuth Facebook: Principal is null during ticket reception");
+                context.Response.Redirect("/?error=facebook_principal_null");
+                context.HandleResponse();
+                return;
+            }
             var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
-            var redirect = await processor.ProcessAsync("Facebook", context.Principal!);
+            var redirect = await processor.ProcessAsync("Facebook", context.Principal);
             context.Response.Redirect(redirect);
             context.HandleResponse();
         },
