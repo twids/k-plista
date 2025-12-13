@@ -45,24 +45,40 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
             if (user == null)
             {
                 var existingEmailUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
-                if (existingEmailUser != null && existingEmailUser.ExternalProvider != provider)
+                if (existingEmailUser != null)
                 {
-                    _logger.LogWarning("ExternalAuth: Email {Email} already exists with different provider {Existing} (extId {ExternalId})", masked, existingEmailUser.ExternalProvider, maskedExternalId);
-                    return $"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingEmailUser.ExternalProvider}")}";
+                    if (existingEmailUser.ExternalProvider != provider)
+                    {
+                        _logger.LogWarning("ExternalAuth: Email {Email} already exists with different provider {Existing} (extId {ExternalId})", masked, existingEmailUser.ExternalProvider, maskedExternalId);
+                        return $"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingEmailUser.ExternalProvider}")}";
+                    }
+                    // Same provider, but possibly different ExternalUserId
+                    if (existingEmailUser.ExternalUserId != externalUserId)
+                    {
+                        _logger.LogInformation("ExternalAuth: Updating ExternalUserId for {Email} from {OldExternalId} to {NewExternalId}", masked, LogMasking.MaskExternalId(existingEmailUser.ExternalUserId), maskedExternalId);
+                        existingEmailUser.ExternalUserId = externalUserId;
+                        existingEmailUser.UpdatedAt = DateTime.UtcNow;
+                    }
+                    // Update other fields as well
+                    existingEmailUser.Name = name ?? email;
+                    existingEmailUser.ProfilePictureUrl = pictureUrl;
+                    user = existingEmailUser;
                 }
-
-                user = new User
+                else
                 {
-                    Id = Guid.NewGuid(),
-                    Email = email,
-                    Name = name ?? email,
-                    ProfilePictureUrl = pictureUrl,
-                    ExternalProvider = provider,
-                    ExternalUserId = externalUserId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _db.Users.Add(user);
+                    user = new User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = email,
+                        Name = name ?? email,
+                        ProfilePictureUrl = pictureUrl,
+                        ExternalProvider = provider,
+                        ExternalUserId = externalUserId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _db.Users.Add(user);
+                }
             }
             else
             {
