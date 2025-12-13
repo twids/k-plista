@@ -109,9 +109,9 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
             _logger.LogInformation("ExternalAuth: Provider {Provider} authenticated {Email} (extId {ExternalId})", provider, masked, maskedExternalId);
             return $"/?token={token}&login_success=true";
         }
-        catch (Exception ex)
+        catch (DbUpdateException ex)
         {
-            _logger.LogError(ex, "ExternalAuth: Error authenticating provider {Provider} (extId {ExternalId})", provider, maskedExternalId);
+            _logger.LogError(ex, "ExternalAuth: Database update error authenticating provider {Provider} (extId {ExternalId})", provider, maskedExternalId);
             return "/?error=authentication_error";
         }
     }
