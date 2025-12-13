@@ -125,24 +125,24 @@ builder.Services.AddAuthentication(options =>
     options.SaveTokens = false; // We're issuing our own JWT
     options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
     {
-            OnCreatingTicket = ctx =>
+        OnCreatingTicket = ctx =>
+        {
+            var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
+            var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (email != null || externalId != null)
             {
-                var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
-                var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (email != null || externalId != null)
+                var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
+                if (email != null)
                 {
-                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
-                    if (email != null)
-                    {
-                        logger.LogInformation("Google CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
-                    }
-                    else
-                    {
-                        logger.LogInformation("Google CreatingTicket extId {ExternalId}", LogMasking.MaskExternalId(externalId));
-                    }
+                    logger.LogInformation("Google CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
                 }
-                return Task.CompletedTask;
-            },
+                else
+                {
+                    logger.LogInformation("Google CreatingTicket extId {ExternalId}", LogMasking.MaskExternalId(externalId));
+                }
+            }
+            return Task.CompletedTask;
+        },
         OnTicketReceived = async context =>
         {
             var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
