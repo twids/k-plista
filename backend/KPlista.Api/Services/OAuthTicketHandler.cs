@@ -78,7 +78,7 @@ public class OAuthTicketHandler
         catch (InvalidOperationException ex)
         {
             logger.LogWarning(ex, "{Provider}: Invalid operation during authentication", provider);
-            context.Response.Redirect($"/?error=email_exists&message={Uri.EscapeDataString(ex.Message)}");
+            context.Response.Redirect($"/?error=email_exists&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
         catch (DbUpdateException ex)
