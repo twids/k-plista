@@ -31,6 +31,14 @@ public class OAuthTicketHandler
     /// </summary>
     public async Task HandleAsync(TicketReceivedContext context, string provider)
     {
+        if (context.Principal == null)
+        {
+            _logger.LogWarning("{Provider}: Missing principal on OAuth ticket", provider);
+            context.Response.Redirect($"/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
+            context.HandleResponse();
+            return;
+        }
+
         var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value;
         var name = context.Principal?.FindFirst(ClaimTypes.Name)?.Value;
         var externalUserId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
