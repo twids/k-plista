@@ -36,6 +36,7 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
+  useDroppable,
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
@@ -136,13 +137,18 @@ interface DroppableGroupProps {
 }
 
 const DroppableGroup = ({ id, children }: DroppableGroupProps) => {
-  const { setNodeRef } = useSortable({
+  const { setNodeRef, isOver } = useDroppable({
     id: id,
-    data: { type: 'group' }
   });
 
   return (
-    <div ref={setNodeRef}>
+    <div
+      ref={setNodeRef}
+      style={{
+        backgroundColor: isOver ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+        transition: 'background-color 0.2s',
+      }}
+    >
       {children}
     </div>
   );
