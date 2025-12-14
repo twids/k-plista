@@ -31,8 +31,6 @@ public class OAuthTicketHandler
     /// </summary>
     public async Task HandleAsync(TicketReceivedContext context, string provider)
     {
-        var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
-        
         var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value;
         var name = context.Principal?.FindFirst(ClaimTypes.Name)?.Value;
         var externalUserId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -40,7 +38,7 @@ public class OAuthTicketHandler
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
-            logger.LogWarning("{Provider}: Missing required claims for OAuth ticket", provider);
+            _logger.LogWarning("{Provider}: Missing required claims for OAuth ticket", provider);
             context.Response.Redirect($"/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
             return;
@@ -53,10 +51,10 @@ public class OAuthTicketHandler
             var db = context.HttpContext.RequestServices.GetRequiredService<KPlistaDbContext>();
             
             // Use retry logic to handle race conditions during concurrent user creation
-            var user = await GetOrCreateUserWithRetryAsync(userService, db, provider, externalUserId, email, name ?? email, pictureUrl, logger);
+            var user = await GetOrCreateUserWithRetryAsync(userService, db, provider, externalUserId, email, name ?? email, pictureUrl, _logger);
             
             var token = jwtService.GenerateToken(user.Id, user.Email, user.Name);
-            logger.LogInformation("{Provider}: Authenticated {Email} (extId {ExternalId})", provider, LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalUserId));
+            _logger.LogInformation("{Provider}: Authenticated {Email} (extId {ExternalId})", provider, LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalUserId));
             
             // Set secure HTTP-only cookie
             context.Response.Cookies.Append(
@@ -77,19 +75,19 @@ public class OAuthTicketHandler
         }
         catch (InvalidOperationException ex)
         {
-            logger.LogWarning(ex, "{Provider}: Invalid operation during authentication", provider);
+            _logger.LogWarning(ex, "{Provider}: Invalid operation during authentication", provider);
             context.Response.Redirect($"/?error=email_exists&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
         catch (DbUpdateException ex)
         {
-            logger.LogError(ex, "{Provider}: Database error after {MaxRetries} retry attempts during user provisioning", provider, MaxRetries);
+            _logger.LogError(ex, "{Provider}: Database error after {MaxRetries} retry attempts during user provisioning", provider, MaxRetries);
             context.Response.Redirect($"/?error=database_error&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{Provider}: Unexpected error during OAuth ticket reception", provider);
+            _logger.LogError(ex, "{Provider}: Unexpected error during OAuth ticket reception", provider);
             context.Response.Redirect($"/?error=authentication_error&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
