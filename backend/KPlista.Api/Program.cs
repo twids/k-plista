@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
 using KPlista.Api.Data;
 using KPlista.Api.Hubs;
 using KPlista.Api.Models;
