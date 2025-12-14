@@ -29,7 +29,7 @@ export const SignalRProvider: React.FC<SignalRProviderProps> = ({ children }) =>
     if (user) {
       // Connect to SignalR when user is authenticated
       // Token is stored in secure HTTP-only cookie; no need to pass it explicitly
-      signalRService.connect('').catch(err => {
+      signalRService.connect().catch(err => {
         console.error('Failed to connect to SignalR:', err);
       });
 

@@ -11,7 +11,7 @@ class SignalRService {
   private currentListId: string | null = null;
   private stateChangeCallbacks: Array<(state: signalR.HubConnectionState) => void> = [];
 
-  async connect(token: string): Promise<void> {
+  async connect(): Promise<void> {
     if (this.connection) {
       return;
     }
