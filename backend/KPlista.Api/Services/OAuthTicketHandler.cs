@@ -74,6 +74,7 @@ public class OAuthTicketHandler
                     Secure = context.Request.IsHttps,
                     // Lax allows cookie on top-level OAuth redirects while still mitigating CSRF
                     SameSite = SameSiteMode.Lax,
+                    Path = "/",
                     Expires = DateTimeOffset.UtcNow.AddDays(30)
                 }
             );
