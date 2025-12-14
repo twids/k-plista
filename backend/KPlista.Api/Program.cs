@@ -31,7 +31,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IExternalAuthProcessor, ExternalAuthProcessor>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi();
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -307,8 +307,7 @@ app.Use(async (ctx, next) =>
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
     // Only use CORS in development for local dev servers
     app.UseCors("AllowFrontend");
 }

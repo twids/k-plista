@@ -12,7 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@microsoft/signalr": "^8.0.17",
+    "@microsoft/signalr": "^10.0.0",
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.6",
     "google-auth-library": "^10.5.0",

@@ -16,7 +16,7 @@ COPY frontend/ .
 RUN npm run build
 
 # Build backend
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
@@ -33,7 +33,7 @@ FROM backend-build AS publish
 RUN dotnet publish "KPlista.Api.csproj" -c Release -o /app/publish
 
 # Final stage - backend serving frontend
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 # Copy backend files

@@ -23,7 +23,7 @@ A modern, mobile-first grocery list application built with a React frontend and 
 - **SignalR Client** for real-time communication
 
 ### Backend
-- **ASP.NET Core 8.0** with C# (LTS)
+- **ASP.NET Core 10.0** with C# (LTS)
 - **Entity Framework Core** with PostgreSQL
 - **JWT Authentication** with OIDC support
 - **RESTful API** design
@@ -40,7 +40,7 @@ A modern, mobile-first grocery list application built with a React frontend and 
 ### Prerequisites
 
 - Docker and Docker Compose
-- .NET 8.0 SDK (for local development)
+- .NET 10.0 SDK (for local development)
 - Node.js 20+ (for local development)
 
 ### Quick Start with Docker
