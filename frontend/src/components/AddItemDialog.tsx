@@ -10,14 +10,9 @@ import {
   MenuItem,
   Box,
   Typography,
-  InputAdornment,
-  IconButton,
 } from '@mui/material';
-import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
-import ClearIcon from '@mui/icons-material/Clear';
 import type { ItemGroup } from '../types';
-import { COMMON_EMOJIS, EMOJI_DISPLAY_SIZE, EMOJI_SELECTOR_SIZE, EMOJI_PICKER_HELP_TEXT } from '../constants/emojis';
-import { useEmojiPicker } from '../hooks/useEmojiPicker';
+import { CreateGroupDialog } from './CreateGroupDialog';
 
 interface AddItemDialogProps {
   open: boolean;
@@ -32,9 +27,16 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState('');
   const [groupId, setGroupId] = useState('');
-  const [newGroupName, setNewGroupName] = useState('');
-  const [showNewGroup, setShowNewGroup] = useState(false);
-  const { emoji, setEmoji, emojiInputRef, handleEmojiInputChange, handleEmojiClick, clearEmoji } = useEmojiPicker();
+  const [showNewGroupDialog, setShowNewGroupDialog] = useState(false);
+
+  const handleGroupChange = (value: string) => {
+    if (value === '__new__') {
+      setShowNewGroupDialog(true);
+      setGroupId('');
+      return;
+    }
+    setGroupId(value);
+  };
 
   const handleSubmit = () => {
     if (name.trim()) {
@@ -46,21 +48,11 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
     }
   };
 
-  const handleCreateGroup = async () => {
-    if (onCreateGroup && newGroupName.trim()) {
-      // Use emoji as icon
-      const newId = await onCreateGroup(newGroupName, undefined, emoji || undefined);
-      setGroupId(newId);
-      setNewGroupName('');
-      setShowNewGroup(false);
-      clearEmoji();
-    }
-  };
-
-  const handleCancelNewGroup = () => {
-    setShowNewGroup(false);
-    setNewGroupName('');
-    clearEmoji();
+  const handleCreateGroup = async (groupName: string, color?: string, icon?: string) => {
+    if (!onCreateGroup) return;
+    const newId = await onCreateGroup(groupName, color, icon);
+    setGroupId(newId);
+    setShowNewGroupDialog(false);
   };
 
   return (
@@ -93,14 +85,14 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
           onChange={(e) => setUnit(e.target.value)}
           sx={{ mb: 2 }}
         />
-        {groups.length > 0 && !showNewGroup && (
+        {groups.length > 0 && (
           <TextField
             select
             margin="dense"
             label="Group (optional)"
             fullWidth
             value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
+            onChange={(e) => handleGroupChange(e.target.value)}
           >
             <MenuItem value="">No Group</MenuItem>
             {groups.map((group) => (
@@ -108,108 +100,19 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
                 {group.name}
               </MenuItem>
             ))}
-            <MenuItem value="__new__" onClick={() => setShowNewGroup(true)}>
+            <MenuItem value="__new__">
               + Create new group
             </MenuItem>
           </TextField>
         )}
-        {showNewGroup && (
-          <Box sx={{ mt: 2, mb: 2 }}>
-            <TextField
-              label="New Group Name"
-              fullWidth
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              sx={{ mb: 2 }}
-            />
-            
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>Emoji Icon (optional)</Typography>
-            
-            {/* Native emoji picker approach */}
-            <TextField
-              inputRef={emojiInputRef}
-              placeholder="Click to select emoji"
-              value={emoji}
-              onChange={handleEmojiInputChange}
-              onClick={handleEmojiClick}
-              fullWidth
-              size="small"
-              inputProps={{
-                'aria-label': 'Select an emoji icon for this group using your system emoji picker',
-              }}
-              InputProps={{
-                startAdornment: emoji ? (
-                  <InputAdornment position="start">
-                    <Box sx={{ fontSize: EMOJI_DISPLAY_SIZE }}>{emoji}</Box>
-                  </InputAdornment>
-                ) : null,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {emoji ? (
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          clearEmoji();
-                        }}
-                      >
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    ) : (
-                      <IconButton size="small" onClick={handleEmojiClick}>
-                        <EmojiEmotionsIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ cursor: 'pointer', mb: 1 }}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              {EMOJI_PICKER_HELP_TEXT}
+        {groups.length === 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              No groups yet. Create one to organize your item.
             </Typography>
-            
-            {/* Quick selection from common emojis */}
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Or select from common options:
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-              {COMMON_EMOJIS.map((emojiOption) => (
-                <Box
-                  key={emojiOption}
-                  onClick={() => setEmoji(emojiOption)}
-                  sx={{
-                    width: EMOJI_SELECTOR_SIZE,
-                    height: EMOJI_SELECTOR_SIZE,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    borderRadius: 1,
-                    border: emoji === emojiOption ? '2px solid #1976d2' : '1px solid #ccc',
-                    fontSize: '1.5rem',
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                >
-                  {emojiOption}
-                </Box>
-              ))}
-            </Box>
-            
-            <Box>
-              <Button
-                variant="contained"
-                onClick={handleCreateGroup}
-                disabled={!newGroupName.trim()}
-              >
-                Create Group
-              </Button>
-              <Button sx={{ ml: 2 }} onClick={handleCancelNewGroup}>
-                Cancel
-              </Button>
-            </Box>
+            <Button variant="outlined" onClick={() => setShowNewGroupDialog(true)}>
+              Create Group
+            </Button>
           </Box>
         )}
       </DialogContent>
@@ -219,6 +122,14 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
           Add
         </Button>
       </DialogActions>
+
+      {onCreateGroup && (
+        <CreateGroupDialog
+          open={showNewGroupDialog}
+          onClose={() => setShowNewGroupDialog(false)}
+          onCreate={handleCreateGroup}
+        />
+      )}
     </Dialog>
   );
 };
