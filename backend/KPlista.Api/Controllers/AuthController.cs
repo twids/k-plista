@@ -197,6 +197,27 @@ public class AuthController : ControllerBase
         _logger.LogInformation("AuthController: Initiating Facebook OAuth challenge");
         return Challenge(new AuthenticationProperties(), "Facebook");
     }
+
+    // POST: api/auth/logout
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public IActionResult Logout()
+    {
+        // Remove the auth_token cookie; HttpOnly prevents client-side removal
+        Response.Cookies.Delete(
+            "auth_token",
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Path = "/"
+            }
+        );
+
+        _logger.LogInformation("AuthController: User logged out, auth_token cookie cleared");
+        return Ok();
+    }
 }
 
 public record LoginRequest(
