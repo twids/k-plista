@@ -17,8 +17,7 @@ class SignalRService {
     }
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl(HUB_URL, {
-        accessTokenFactory: () => token,
+      .withUrl(`${HUB_URL}?access_token=${encodeURIComponent(token)}`, {
         withCredentials: true,
       })
       .withAutomaticReconnect({
