@@ -86,7 +86,6 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
                 'aria-label': 'Select an emoji icon for this group using your system emoji picker',
               }}
               InputProps={{
-                readOnly: true,
                 startAdornment: icon ? (
                   <InputAdornment position="start">
                     <Box sx={{ fontSize: EMOJI_DISPLAY_SIZE }}>{icon}</Box>
