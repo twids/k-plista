@@ -23,7 +23,7 @@ public class OAuthTicketHandler
     /// <summary>
     /// Processes an OAuth ticket received from an external provider.
     /// </summary>
-    public async Task HandleAsync(OAuthTicketReceivedContext context, string provider)
+    public async Task HandleAsync(dynamic context, string provider)
     {
         var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
         
