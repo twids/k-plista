@@ -182,7 +182,7 @@ Enter Email + Click Share → ShareListDialog
        ▼
 ┌─────────────────────────────────┐
 │  Redirect to OAuth Provider     │
-│  (Google/Facebook/Apple)         │
+│  (Google/Facebook)               │
 └──────┬──────────────────────────┘
        │
        ▼

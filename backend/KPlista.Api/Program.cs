@@ -107,25 +107,20 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
-            var path = context.HttpContext.Request.Path;
-            
-            // For SignalR, extract token from secure HTTP-only cookie
-            if (path.StartsWithSegments("/hubs"))
+            // Extract token from secure HTTP-only cookie for all endpoints
+            var cookieToken = context.HttpContext.Request.Cookies["auth_token"];
+            if (!string.IsNullOrEmpty(cookieToken))
             {
-                var cookieToken = context.HttpContext.Request.Cookies["auth_token"];
-                if (!string.IsNullOrEmpty(cookieToken))
+                context.Token = cookieToken;
+            }
+            // Fall back to Authorization header if no cookie
+            else
+            {
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                 {
-                    context.Token = cookieToken;
-                }
-                // Fall back to Authorization header if no cookie
-                else
-                {
-                    var authHeader = context.Request.Headers["Authorization"].ToString();
-                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var token = authHeader.Substring("Bearer ".Length).Trim();
-                        context.Token = token;
-                    }
+                    var token = authHeader.Substring("Bearer ".Length).Trim();
+                    context.Token = token;
                 }
             }
             
