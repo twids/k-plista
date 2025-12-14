@@ -8,7 +8,19 @@ namespace KPlista.Api.Services;
 
 /// <summary>
 /// Service for provisioning and updating external OAuth users in the database.
-/// Handles find-or-create logic for OAuth flows.
+/// Handles find-or-create logic for OAuth flows with proper error handling for race conditions.
+/// 
+/// RACE CONDITION HANDLING:
+/// When multiple concurrent requests attempt to authenticate the same user (by provider + externalUserId),
+/// both may pass the initial database lookups and attempt to insert a new user. The second insert
+/// will fail with DbUpdateException due to unique constraints on email or external user ID.
+/// 
+/// The caller (OAuthTicketHandler) is responsible for catching DbUpdateException and implementing
+/// retry logic with exponential backoff. This design separates concerns:
+/// - Service: Business logic for user provisioning
+/// - Handler: Retry/resilience logic and error recovery
+/// 
+/// See OAuthTicketHandler.GetOrCreateUserWithRetryAsync() for the retry implementation.
 /// </summary>
 public interface IExternalUserService
 {
@@ -26,6 +38,15 @@ public class ExternalUserService : IExternalUserService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Gets an existing user or creates a new one for the external OAuth provider.
+    /// 
+    /// NOTE ON SAVECHANGESASYNC:
+    /// Caller is responsible for calling SaveChangesAsync() AFTER this method returns.
+    /// This is intentional to support retry logic in OAuthTicketHandler for handling
+    /// DbUpdateException race conditions. The handler catches failures and retries
+    /// with exponential backoff after clearing the DbContext change tracker.
+    /// </summary>
     public async Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null, CancellationToken ct = default)
     {
         var maskedEmail = LogMasking.MaskEmail(email);
