@@ -8,7 +8,7 @@ namespace KPlista.Api.Services;
 
 public interface IExternalAuthProcessor
 {
-    Task<string> ProcessAsync(string provider, ClaimsPrincipal principal, CancellationToken ct = default);
+    Task<string> ProcessAsync(string provider, ClaimsPrincipal principal, HttpContext httpContext, CancellationToken ct = default);
 }
 
 public class ExternalAuthProcessor : IExternalAuthProcessor
@@ -24,7 +24,7 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
         _logger = logger;
     }
 
-    public async Task<string> ProcessAsync(string provider, ClaimsPrincipal principal, CancellationToken ct = default)
+    public async Task<string> ProcessAsync(string provider, ClaimsPrincipal principal, HttpContext httpContext, CancellationToken ct = default)
     {
         var email = principal.FindFirst(ClaimTypes.Email)?.Value;
         var name = principal.FindFirst(ClaimTypes.Name)?.Value;
@@ -50,7 +50,7 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
                     if (existingEmailUser.ExternalProvider != provider)
                     {
                         _logger.LogWarning("ExternalAuth: Email {Email} already exists with different provider {Existing} (extId {ExternalId})", masked, existingEmailUser.ExternalProvider, maskedExternalId);
-                        return $"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingEmailUser.ExternalProvider}")}";
+                        return $"/?error=email_exists&provider={Uri.EscapeDataString(existingEmailUser.ExternalProvider)}";
                     }
                     // Same provider, but possibly different ExternalUserId
                     if (existingEmailUser.ExternalUserId != externalUserId)
@@ -107,7 +107,21 @@ public class ExternalAuthProcessor : IExternalAuthProcessor
             }
             var token = _jwt.GenerateToken(user.Id, user.Email, user.Name);
             _logger.LogInformation("ExternalAuth: Provider {Provider} authenticated {Email} (extId {ExternalId})", provider, masked, maskedExternalId);
-            return $"/?token={token}&login_success=true";
+            
+            // Set secure HTTP-only cookie (no JS access, no URL exposure)
+            httpContext.Response.Cookies.Append(
+                "auth_token",
+                token,
+                new Microsoft.AspNetCore.Http.CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = httpContext.Request.IsHttps,
+                    SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddDays(30)
+                }
+            );
+            
+            return "/?login_success=true";
         }
         catch (DbUpdateException ex)
         {

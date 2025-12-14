@@ -17,7 +17,8 @@ class SignalRService {
     }
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${HUB_URL}?access_token=${encodeURIComponent(token)}`, {
+      .withUrl(HUB_URL, {
+        // Token is stored in secure HTTP-only cookie; withCredentials ensures cookie is sent
         withCredentials: true,
       })
       .withAutomaticReconnect({

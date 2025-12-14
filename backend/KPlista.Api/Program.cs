@@ -105,12 +105,26 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
-            var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
             
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            // For SignalR, extract token from secure HTTP-only cookie
+            if (path.StartsWithSegments("/hubs"))
             {
-                context.Token = accessToken;
+                var cookieToken = context.HttpContext.Request.Cookies["auth_token"];
+                if (!string.IsNullOrEmpty(cookieToken))
+                {
+                    context.Token = cookieToken;
+                }
+                // Fall back to Authorization header if no cookie
+                else
+                {
+                    var authHeader = context.Request.Headers["Authorization"].ToString();
+                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var token = authHeader.Substring("Bearer ".Length).Trim();
+                        context.Token = token;
+                    }
+                }
             }
             
             return Task.CompletedTask;
@@ -146,7 +160,7 @@ builder.Services.AddAuthentication(options =>
         OnTicketReceived = async context =>
         {
             var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
-            var redirect = await processor.ProcessAsync("Google", context.Principal!);
+            var redirect = await processor.ProcessAsync("Google", context.Principal!, context.HttpContext);
             context.Response.Redirect(redirect);
             context.HandleResponse();
         },
@@ -196,7 +210,7 @@ builder.Services.AddAuthentication(options =>
                 return;
             }
             var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
-            var redirect = await processor.ProcessAsync("Facebook", context.Principal);
+            var redirect = await processor.ProcessAsync("Facebook", context.Principal, context.HttpContext);
             context.Response.Redirect(redirect);
             context.HandleResponse();
         },
