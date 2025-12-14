@@ -1,7 +1,6 @@
 import { Box, Button, Container, Typography, Paper, Stack } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
-import AppleIcon from '@mui/icons-material/Apple';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 
 export const LoginPage = () => {
@@ -14,11 +13,6 @@ export const LoginPage = () => {
   const handleFacebookLogin = () => {
     // Redirect to backend Facebook OAuth endpoint
     window.location.href = '/api/auth/facebook';
-  };
-
-  const handleAppleLogin = () => {
-    // Apple OAuth not configured in backend yet
-    alert('Apple login is not configured yet. Please use Google or Facebook.');
   };
 
   return (
@@ -68,20 +62,6 @@ export const LoginPage = () => {
                 }}
               >
                 Sign in with Facebook
-              </Button>
-
-              <Button
-                fullWidth
-                variant="contained"
-                size="large"
-                startIcon={<AppleIcon />}
-                onClick={handleAppleLogin}
-                sx={{
-                  bgcolor: '#000000',
-                  '&:hover': { bgcolor: '#333333' },
-                }}
-              >
-                Sign in with Apple
               </Button>
             </Stack>
 

@@ -88,8 +88,8 @@ export const ListsPage = () => {
     initiateDelete(id, `Deleting "${listName}"`);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 

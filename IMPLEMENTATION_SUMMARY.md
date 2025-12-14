@@ -19,7 +19,7 @@ Koplista is a modern, mobile-first grocery list application built from scratch w
 - **Language**: C# 12
 - **ORM**: Entity Framework Core 9.0
 - **Database**: PostgreSQL 16
-- **Authentication**: JWT with OIDC support (Google, Facebook, Apple)
+- **Authentication**: JWT with OIDC support (Google, Facebook)
 - **Real-Time**: SignalR for WebSocket communication
 
 ### Infrastructure
@@ -49,7 +49,7 @@ Koplista is a modern, mobile-first grocery list application built from scratch w
 
 ### Authentication
 ✅ JWT-based authentication
-✅ OIDC provider integration framework (Google, Facebook, Apple)
+✅ OIDC provider integration framework (Google, Facebook)
 ✅ Secure token storage
 ✅ Protected API endpoints
 

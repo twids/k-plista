@@ -11,14 +11,14 @@ class SignalRService {
   private currentListId: string | null = null;
   private stateChangeCallbacks: Array<(state: signalR.HubConnectionState) => void> = [];
 
-  async connect(token: string): Promise<void> {
+  async connect(): Promise<void> {
     if (this.connection) {
       return;
     }
 
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, {
-        accessTokenFactory: () => token,
+        // Token is stored in secure HTTP-only cookie; withCredentials ensures cookie is sent
         withCredentials: true,
       })
       .withAutomaticReconnect({

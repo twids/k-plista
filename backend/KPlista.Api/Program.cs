@@ -28,7 +28,8 @@ builder.WebHost.UseKestrel(options =>
 
 // Add services to the container.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-builder.Services.AddScoped<IExternalAuthProcessor, ExternalAuthProcessor>();
+builder.Services.AddScoped<IExternalUserService, ExternalUserService>();
+builder.Services.AddScoped<OAuthTicketHandler>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -105,12 +106,21 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
-            var accessToken = context.Request.Query["access_token"];
-            var path = context.HttpContext.Request.Path;
-            
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            // Extract token from secure HTTP-only cookie for all endpoints
+            var cookieToken = context.HttpContext.Request.Cookies["auth_token"];
+            if (!string.IsNullOrEmpty(cookieToken))
             {
-                context.Token = accessToken;
+                context.Token = cookieToken;
+            }
+            // Fall back to Authorization header if no cookie
+            else
+            {
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var token = authHeader.Substring("Bearer ".Length).Trim();
+                    context.Token = token;
+                }
             }
             
             return Task.CompletedTask;
@@ -134,21 +144,15 @@ builder.Services.AddAuthentication(options =>
                 var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
                 if (email != null)
                 {
-                    logger.LogInformation("Google CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
-                }
-                else
-                {
-                    logger.LogInformation("Google CreatingTicket extId {ExternalId}", LogMasking.MaskExternalId(externalId));
+                    logger.LogInformation("Google: CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
                 }
             }
             return Task.CompletedTask;
         },
         OnTicketReceived = async context =>
         {
-            var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
-            var redirect = await processor.ProcessAsync("Google", context.Principal!);
-            context.Response.Redirect(redirect);
-            context.HandleResponse();
+            var handler = context.HttpContext.RequestServices.GetRequiredService<OAuthTicketHandler>();
+            await handler.HandleAsync(context, "Google");
         },
         OnRemoteFailure = context =>
         {
@@ -176,29 +180,15 @@ builder.Services.AddAuthentication(options =>
                 var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
                 if (email != null)
                 {
-                    logger.LogInformation("Facebook CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
-                }
-                else
-                {
-                    logger.LogInformation("Facebook CreatingTicket extId {ExternalId}", LogMasking.MaskExternalId(externalId));
+                    logger.LogInformation("Facebook: CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
                 }
             }
             return Task.CompletedTask;
         },
         OnTicketReceived = async context =>
         {
-            if (context.Principal == null)
-            {
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
-                logger.LogError("OAuth Facebook: Principal is null during ticket reception");
-                context.Response.Redirect("/?error=facebook_principal_null");
-                context.HandleResponse();
-                return;
-            }
-            var processor = context.HttpContext.RequestServices.GetRequiredService<IExternalAuthProcessor>();
-            var redirect = await processor.ProcessAsync("Facebook", context.Principal);
-            context.Response.Redirect(redirect);
-            context.HandleResponse();
+            var handler = context.HttpContext.RequestServices.GetRequiredService<OAuthTicketHandler>();
+            await handler.HandleAsync(context, "Facebook");
         },
         OnRemoteFailure = context =>
         {

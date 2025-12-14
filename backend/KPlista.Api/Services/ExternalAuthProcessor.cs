@@ -6,113 +6,102 @@ using Microsoft.Extensions.Logging;
 
 namespace KPlista.Api.Services;
 
-public interface IExternalAuthProcessor
+/// <summary>
+/// Service for provisioning and updating external OAuth users in the database.
+/// Handles find-or-create logic for OAuth flows with proper error handling for race conditions.
+/// 
+/// RACE CONDITION HANDLING:
+/// When multiple concurrent requests attempt to authenticate the same user (by provider + externalUserId),
+/// both may pass the initial database lookups and attempt to insert a new user. The second insert
+/// will fail with DbUpdateException due to unique constraints on email or external user ID.
+/// 
+/// The caller (OAuthTicketHandler) is responsible for catching DbUpdateException and implementing
+/// retry logic with exponential backoff. This design separates concerns:
+/// - Service: Business logic for user provisioning
+/// - Handler: Retry/resilience logic and error recovery
+/// 
+/// See OAuthTicketHandler.GetOrCreateUserWithRetryAsync() for the retry implementation.
+/// </summary>
+public interface IExternalUserService
 {
-    Task<string> ProcessAsync(string provider, ClaimsPrincipal principal, CancellationToken ct = default);
+    Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null, CancellationToken ct = default);
 }
 
-public class ExternalAuthProcessor : IExternalAuthProcessor
+public class ExternalUserService : IExternalUserService
 {
     private readonly KPlistaDbContext _db;
-    private readonly IJwtTokenService _jwt;
-    private readonly ILogger<ExternalAuthProcessor> _logger;
+    private readonly ILogger<ExternalUserService> _logger;
 
-    public ExternalAuthProcessor(KPlistaDbContext db, IJwtTokenService jwt, ILogger<ExternalAuthProcessor> logger)
+    public ExternalUserService(KPlistaDbContext db, ILogger<ExternalUserService> logger)
     {
         _db = db;
-        _jwt = jwt;
         _logger = logger;
     }
 
-    public async Task<string> ProcessAsync(string provider, ClaimsPrincipal principal, CancellationToken ct = default)
+    /// <summary>
+    /// Gets an existing user or creates a new one for the external OAuth provider.
+    /// 
+    /// NOTE ON SAVECHANGESASYNC:
+    /// Caller is responsible for calling SaveChangesAsync() AFTER this method returns.
+    /// This is intentional to support retry logic in OAuthTicketHandler for handling
+    /// DbUpdateException race conditions. The handler catches failures and retries
+    /// with exponential backoff after clearing the DbContext change tracker.
+    /// </summary>
+    public async Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null, CancellationToken ct = default)
     {
-        var email = principal.FindFirst(ClaimTypes.Email)?.Value;
-        var name = principal.FindFirst(ClaimTypes.Name)?.Value;
-        var externalUserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var maskedExternalId = LogMasking.MaskExternalId(externalUserId);
-        var pictureUrl = principal.FindFirst("picture")?.Value;
+        var maskedEmail = LogMasking.MaskEmail(email);
+        var maskedExtId = LogMasking.MaskExternalId(externalUserId);
 
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
+        // Try exact match: provider + externalUserId
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId, ct);
+        if (user != null)
         {
-            _logger.LogWarning("ExternalAuth: Missing required claims for provider {Provider}", provider);
-            return "/?error=invalid_user_data";
+            // Update existing user
+            user.Email = email;
+            user.Name = name;
+            user.ProfilePictureUrl = profilePictureUrl;
+            user.UpdatedAt = DateTime.UtcNow;
+            return user;
         }
 
-        try
+        // Check if email exists (account linking scenario or provider switch)
+        var existingEmailUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
+        if (existingEmailUser != null)
         {
-            var masked = LogMasking.MaskEmail(email);
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId, ct);
-            if (user == null)
+            if (existingEmailUser.ExternalProvider != provider)
             {
-                var existingEmailUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
-                if (existingEmailUser != null)
-                {
-                    if (existingEmailUser.ExternalProvider != provider)
-                    {
-                        _logger.LogWarning("ExternalAuth: Email {Email} already exists with different provider {Existing} (extId {ExternalId})", masked, existingEmailUser.ExternalProvider, maskedExternalId);
-                        return $"/?error=email_exists&message={Uri.EscapeDataString($"Account exists with {existingEmailUser.ExternalProvider}")}";
-                    }
-                    // Same provider, but possibly different ExternalUserId
-                    if (existingEmailUser.ExternalUserId != externalUserId)
-                    {
-                        _logger.LogInformation("ExternalAuth: Updating ExternalUserId for {Email} from {OldExternalId} to {NewExternalId}", masked, LogMasking.MaskExternalId(existingEmailUser.ExternalUserId), maskedExternalId);
-                        existingEmailUser.ExternalUserId = externalUserId;
-                        existingEmailUser.UpdatedAt = DateTime.UtcNow;
-                    }
-                    // Update other fields as well
-                    existingEmailUser.Name = name ?? email;
-                    existingEmailUser.ProfilePictureUrl = pictureUrl;
-                    user = existingEmailUser;
-                }
-                else
-                {
-                    user = new User
-                    {
-                        Id = Guid.NewGuid(),
-                        Email = email,
-                        Name = name ?? email,
-                        ProfilePictureUrl = pictureUrl,
-                        ExternalProvider = provider,
-                        ExternalUserId = externalUserId,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-                    _db.Users.Add(user);
-                }
-            }
-            else
-            {
-                user.Email = email;
-                user.Name = name ?? email;
-                user.ProfilePictureUrl = pictureUrl;
-                user.UpdatedAt = DateTime.UtcNow;
+                // Email exists with different provider - linking not allowed in this flow
+                _logger.LogWarning("ExternalAuth: Email {Email} already exists with provider {Existing} (new: {New}, extId: {ExternalId})", 
+                    maskedEmail, existingEmailUser.ExternalProvider, provider, maskedExtId);
+                throw new InvalidOperationException($"Account exists with {existingEmailUser.ExternalProvider}. Please sign in with that provider.");
             }
 
-            try
-            {
-                await _db.SaveChangesAsync(ct);
-            }
-            catch (DbUpdateException dbEx)
-            {
-                // Possible unique constraint violation due to race condition
-                _logger.LogWarning(dbEx, "ExternalAuth: DbUpdateException, possible race condition for provider {Provider} (extId {ExternalId})", provider, maskedExternalId);
-                // Try to fetch the user again
-                user = await _db.Users.FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId, ct);
-                if (user == null)
-                {
-                    // Still not found, rethrow
-                    throw;
-                }
-                // else: user now exists, proceed
-            }
-            var token = _jwt.GenerateToken(user.Id, user.Email, user.Name);
-            _logger.LogInformation("ExternalAuth: Provider {Provider} authenticated {Email} (extId {ExternalId})", provider, masked, maskedExternalId);
-            return $"/?token={token}&login_success=true";
+            // Same provider, different external ID (shouldn't happen often)
+            _logger.LogInformation("ExternalAuth: Updating ExternalUserId for {Email} (old: {OldId}, new: {NewId})", 
+                maskedEmail, LogMasking.MaskExternalId(existingEmailUser.ExternalUserId), maskedExtId);
+            existingEmailUser.ExternalUserId = externalUserId;
+            existingEmailUser.Name = name;
+            existingEmailUser.ProfilePictureUrl = profilePictureUrl;
+            existingEmailUser.UpdatedAt = DateTime.UtcNow;
+            return existingEmailUser;
         }
-        catch (DbUpdateException ex)
+
+        // New user - create
+        var newUser = new User
         {
-            _logger.LogError(ex, "ExternalAuth: Database update error authenticating provider {Provider} (extId {ExternalId})", provider, maskedExternalId);
-            return "/?error=authentication_error";
-        }
+            Id = Guid.NewGuid(),
+            Email = email,
+            Name = name,
+            ProfilePictureUrl = profilePictureUrl,
+            ExternalProvider = provider,
+            ExternalUserId = externalUserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _db.Users.Add(newUser);
+        _logger.LogInformation("ExternalAuth: New user created for {Email} via {Provider} (extId: {ExternalId})", 
+            maskedEmail, provider, maskedExtId);
+        return newUser;
     }
 }

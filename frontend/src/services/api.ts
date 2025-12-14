@@ -6,7 +6,6 @@ async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -20,13 +19,12 @@ async function fetchApi<T>(
     });
   }
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
+  // Token is now in secure HTTP-only cookie managed by the browser
+  // Include credentials in fetch to send cookies automatically
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include', // Include cookies in requests
   });
 
   if (!response.ok) {
