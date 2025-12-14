@@ -97,7 +97,10 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
             <MenuItem value="">No Group</MenuItem>
             {groups.map((group) => (
               <MenuItem key={group.id} value={group.id}>
-                {group.name}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {group.icon ? <Box sx={{ fontSize: '1.1rem' }}>{group.icon}</Box> : null}
+                  <span>{group.name}</span>
+                </Box>
               </MenuItem>
             ))}
             <MenuItem value="__new__">
