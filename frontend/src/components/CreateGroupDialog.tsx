@@ -10,6 +10,8 @@ import {
   Typography,
   InputAdornment,
   IconButton,
+  FormControl,
+  OutlinedInput,
 } from '@mui/material';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -75,23 +77,20 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
           
           {/* Native emoji picker approach */}
           <Box sx={{ mb: 2 }}>
-            <TextField
-              inputRef={emojiInputRef}
-              placeholder="Click to select emoji"
-              value={icon}
-              onChange={handleEmojiInputChange}
-              onClick={handleEmojiClick}
-              fullWidth
-              inputProps={{
-                'aria-label': 'Select an emoji icon for this group using your system emoji picker',
-              }}
-              InputProps={{
-                startAdornment: icon ? (
+            <FormControl fullWidth variant="outlined">
+              <OutlinedInput
+                inputRef={emojiInputRef}
+                placeholder="Click to select emoji"
+                value={icon}
+                onChange={handleEmojiInputChange}
+                onClick={handleEmojiClick}
+                aria-label="Select an emoji icon for this group using your system emoji picker"
+                startAdornment={icon ? (
                   <InputAdornment position="start">
                     <Box sx={{ fontSize: EMOJI_DISPLAY_SIZE }}>{icon}</Box>
                   </InputAdornment>
-                ) : null,
-                endAdornment: (
+                ) : undefined}
+                endAdornment={
                   <InputAdornment position="end">
                     {icon ? (
                       <IconButton
@@ -109,10 +108,10 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
                       </IconButton>
                     )}
                   </InputAdornment>
-                ),
-              }}
-              sx={{ cursor: 'pointer' }}
-            />
+                }
+                sx={{ cursor: 'pointer' }}
+              />
+            </FormControl>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
               {EMOJI_PICKER_HELP_TEXT}
             </Typography>
