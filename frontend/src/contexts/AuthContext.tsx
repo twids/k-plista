@@ -6,7 +6,7 @@ import { authService } from '../services/authService';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (provider: string, token: string) => Promise<void>;
+  login: () => Promise<void>;
   logout: () => void;
 }
 
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
-      } catch (err) {
+      } catch {
         // Not authenticated
       }
       setLoading(false);
@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initAuth();
   }, []);
 
-  const login = async (_provider: string, _token: string) => {
+  const login = async () => {
     // Token is stored in secure HTTP-only cookie by backend
     // Just fetch the current user
     const currentUser = await authService.getCurrentUser();
