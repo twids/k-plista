@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using KPlista.Api.Data;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Authentication;
 
 namespace KPlista.Api.Services;
 
@@ -23,7 +24,7 @@ public class OAuthTicketHandler
     /// <summary>
     /// Processes an OAuth ticket received from an external provider.
     /// </summary>
-    public async Task HandleAsync(dynamic context, string provider)
+    public async Task HandleAsync(TicketReceivedContext context, string provider)
     {
         var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
         
@@ -35,7 +36,7 @@ public class OAuthTicketHandler
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
             logger.LogWarning("{Provider}: Missing required claims for OAuth ticket", provider);
-            context.Response.Redirect("/?error=invalid_user_data");
+            context.Response.Redirect($"/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
             return;
         }
@@ -77,13 +78,13 @@ public class OAuthTicketHandler
         catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
         {
             logger.LogError(ex, "{Provider}: Database error during user provisioning", provider);
-            context.Response.Redirect("/?error=database_error");
+            context.Response.Redirect($"/?error=database_error&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "{Provider}: Unexpected error during OAuth ticket reception", provider);
-            context.Response.Redirect("/?error=authentication_error");
+            context.Response.Redirect($"/?error=authentication_error&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
     }

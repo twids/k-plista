@@ -9,7 +9,7 @@ A modern, mobile-first grocery list application built with a React frontend and 
 - 📦 **Item Grouping** - Organize items into customizable groups
 - 👥 **List Sharing** - Share lists with other users with view/edit permissions
 - ✅ **Mark as Bought** - Track purchased items in real-time
-- 🔐 **OIDC Authentication** - Sign in with Google, Facebook, or Apple
+- 🔐 **OIDC Authentication** - Sign in with Google or Facebook
 - ⚡ **Real-Time Updates** - See changes instantly with SignalR WebSocket integration
 - 👀 **Presence Indicators** - Know who's actively viewing the same list
 
