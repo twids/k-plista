@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.OAuth;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using KPlista.Api.Data;
+using KPlista.Api.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication;
