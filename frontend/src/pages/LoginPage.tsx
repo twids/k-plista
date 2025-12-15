@@ -2,15 +2,22 @@ import { Box, Button, Container, Typography, Paper, Stack } from '@mui/material'
 import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import { useSearchParams } from 'react-router-dom';
 
 export const LoginPage = () => {
+  const [searchParams] = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/lists';
 
   const handleGoogleLogin = () => {
+    // Store returnUrl in sessionStorage before redirecting to OAuth
+    sessionStorage.setItem('returnUrl', returnUrl);
     // Redirect to backend Google OAuth endpoint
     window.location.href = '/api/auth/google';
   };
 
   const handleFacebookLogin = () => {
+    // Store returnUrl in sessionStorage before redirecting to OAuth
+    sessionStorage.setItem('returnUrl', returnUrl);
     // Redirect to backend Facebook OAuth endpoint
     window.location.href = '/api/auth/facebook';
   };

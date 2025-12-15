@@ -8,6 +8,8 @@ public class GroceryList
     public Guid OwnerId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public string? ShareToken { get; set; }
+    public bool ShareTokenCanEdit { get; set; } = false;
 
     // Navigation properties
     public User Owner { get; set; } = null!;

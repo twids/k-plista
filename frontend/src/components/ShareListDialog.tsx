@@ -14,9 +14,16 @@ import {
   FormControlLabel,
   Typography,
   Box,
+  Divider,
+  InputAdornment,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LinkIcon from '@mui/icons-material/Link';
 import { listShareService } from '../services/listShareService';
+import { groceryListService } from '../services/groceryListService';
 import type { ListShare } from '../types';
 import { useCountdownDelete } from '../hooks/useCountdownDelete';
 import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
@@ -32,6 +39,10 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
   const [canEdit, setCanEdit] = useState(true);
   const [shares, setShares] = useState<ListShare[]>([]);
   const [loading, setLoading] = useState(false);
+  const [magicLink, setMagicLink] = useState('');
+  const [magicLinkCanEdit, setMagicLinkCanEdit] = useState(false);
+  const [showCopied, setShowCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRemoveShareAction = async (shareId: string) => {
     try {
@@ -73,7 +84,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
       await loadShares();
     } catch (error) {
       console.error('Failed to share list:', error);
-      alert('Failed to share list. Make sure the email is correct.');
+      setError('Failed to share list. Make sure the email is correct.');
     } finally {
       setLoading(false);
     }
@@ -83,10 +94,100 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
     initiateDelete(shareId, `Removing access for "${userName}"`);
   };
 
+  const handleGenerateMagicLink = async () => {
+    setLoading(true);
+    try {
+      const data = await groceryListService.generateMagicLink(listId, { canEdit: magicLinkCanEdit });
+      setMagicLink(data.shareUrl);
+    } catch (error) {
+      console.error('Failed to generate magic link:', error);
+      setError('Failed to generate magic link.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyMagicLink = async () => {
+    try {
+      await navigator.clipboard.writeText(magicLink);
+      setShowCopied(true);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      setError('Failed to copy link to clipboard. Please copy it manually.');
+    }
+  };
+
+  const handleCloseCopiedSnackbar = () => {
+    setShowCopied(false);
+  };
+
+  const handleCloseErrorSnackbar = () => {
+    setError(null);
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Share List</DialogTitle>
       <DialogContent>
+        {/* Magic Link Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Share via Magic Link
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Generate a link that anyone can use to access this list
+          </Typography>
+          {!magicLink ? (
+            <>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={magicLinkCanEdit}
+                    onChange={(e) => setMagicLinkCanEdit(e.target.checked)}
+                  />
+                }
+                label="Allow edit access"
+                sx={{ mb: 2 }}
+              />
+              <Button
+                variant="outlined"
+                startIcon={<LinkIcon />}
+                onClick={handleGenerateMagicLink}
+                disabled={loading}
+                fullWidth
+              >
+                Generate Magic Link
+              </Button>
+            </>
+          ) : (
+            <>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                Permission: {magicLinkCanEdit ? 'Can edit' : 'View only'}
+              </Typography>
+              <TextField
+                fullWidth
+                value={magicLink}
+                InputProps={{
+                  readOnly: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={handleCopyMagicLink} edge="end">
+                        <ContentCopyIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </>
+          )}
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Email Sharing Section */}
+        <Typography variant="subtitle2" gutterBottom>
+          Share with specific users
+        </Typography>
         <TextField
           autoFocus
           margin="dense"
@@ -157,6 +258,28 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
         countdown={countdownState.countdown}
         onCancel={cancelDelete}
       />
+
+      <Snackbar
+        open={showCopied}
+        autoHideDuration={3000}
+        onClose={handleCloseCopiedSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseCopiedSnackbar} severity="success" sx={{ width: '100%' }}>
+          Link copied to clipboard!
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseErrorSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseErrorSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };

@@ -36,6 +36,8 @@ public class KPlistaDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.ShareToken).HasMaxLength(100);
+            entity.HasIndex(e => e.ShareToken).IsUnique();
             entity.HasOne(e => e.Owner)
                 .WithMany(u => u.OwnedLists)
                 .HasForeignKey(e => e.OwnerId)
