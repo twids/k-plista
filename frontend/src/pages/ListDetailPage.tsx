@@ -17,16 +17,36 @@ import {
   ListItemSecondaryAction,
   Chip,
   Stack,
-  Divider,
   Avatar,
   AvatarGroup,
   Tooltip,
+  Paper,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ShareIcon from '@mui/icons-material/Share';
 import FolderIcon from '@mui/icons-material/Folder';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { GroceryItem, ItemGroup, ActiveUser, ItemBoughtStatusUpdate, ItemRemovedUpdate } from '../types';
 import { groceryItemService } from '../services/groceryItemService';
 import { itemGroupService } from '../services/itemGroupService';
@@ -37,6 +57,102 @@ import { useSignalR } from '../hooks/useSignalR';
 import signalRService from '../services/signalRService';
 import { useCountdownDelete } from '../hooks/useCountdownDelete';
 import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
+
+// Sortable Item Component
+interface SortableItemProps {
+  item: GroceryItem;
+  onToggleBought: (item: GroceryItem) => void;
+  onDelete: (itemId: string, itemName: string) => void;
+}
+
+const SortableItem = ({ item, onToggleBought, onDelete }: SortableItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <ListItem
+      ref={setNodeRef}
+      style={style}
+      sx={{
+        textDecoration: item.isBought ? 'line-through' : 'none',
+        opacity: item.isBought ? 0.6 : 1,
+        py: 0.5,
+        bgcolor: isDragging ? 'action.hover' : 'transparent',
+        cursor: isDragging ? 'grabbing' : 'grab',
+        '&:hover': {
+          bgcolor: 'action.hover',
+        },
+      }}
+    >
+      <ListItemIcon
+        sx={{ minWidth: 40, cursor: 'grab' }}
+        {...attributes}
+        {...listeners}
+        aria-label={`Drag ${item.name}`}
+      >
+        <DragIndicatorIcon sx={{ color: 'text.secondary' }} />
+      </ListItemIcon>
+      <ListItemIcon sx={{ minWidth: 40 }}>
+        <Checkbox
+          edge="start"
+          checked={item.isBought}
+          onChange={() => onToggleBought(item)}
+          tabIndex={-1}
+        />
+      </ListItemIcon>
+      <ListItemText
+        primary={item.name}
+        secondary={`${item.quantity} ${item.unit || 'pcs'}`}
+      />
+      <ListItemSecondaryAction>
+        <IconButton
+          edge="end"
+          aria-label="delete"
+          size="small"
+          onClick={() => onDelete(item.id, item.name)}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </ListItemSecondaryAction>
+    </ListItem>
+  );
+};
+
+// Droppable Group Container Component
+interface DroppableGroupProps {
+  id: string;
+  children: React.ReactNode;
+}
+
+const DroppableGroup = ({ id, children }: DroppableGroupProps) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        backgroundColor: isOver ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+        transition: 'background-color 0.2s',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 export const ListDetailPage = () => {
   const { listId } = useParams<{ listId: string }>();
@@ -50,6 +166,19 @@ export const ListDetailPage = () => {
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [openGroupDialog, setOpenGroupDialog] = useState(false);
   const [prefillGroupId, setPrefillGroupId] = useState<string | undefined>(undefined);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Configure sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement required before drag starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleDeleteItemAction = async (itemId: string) => {
     if (!listId) return;
@@ -157,6 +286,72 @@ export const ListDetailPage = () => {
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over || !listId) return;
+
+    const activeItemId = active.id as string;
+    const overContainerId = over.id as string;
+
+    const activeItem = items.find(item => item.id === activeItemId);
+    if (!activeItem) return;
+
+    // Determine the target group
+    let targetGroupId: string | undefined = undefined;
+
+    // Check if dropped over a group
+    const targetGroup = groups.find(g => g.id === overContainerId);
+    if (targetGroup) {
+      targetGroupId = targetGroup.id;
+    } else if (overContainerId === 'ungrouped') {
+      targetGroupId = undefined;
+    } else {
+      // Dropped over another item - find which group it belongs to
+      const overItem = items.find(item => item.id === overContainerId);
+      if (overItem) {
+        targetGroupId = overItem.groupId;
+      }
+    }
+
+    // Only update if the group has changed
+    if (activeItem.groupId !== targetGroupId) {
+      try {
+        // Optimistically update the UI
+        setItems(prevItems =>
+          prevItems.map(item =>
+            item.id === activeItemId
+              ? { ...item, groupId: targetGroupId }
+              : item
+          )
+        );
+
+        // Update on the server
+        await groceryItemService.update(listId, activeItemId, {
+          name: activeItem.name,
+          description: activeItem.description,
+          quantity: activeItem.quantity,
+          unit: activeItem.unit,
+          groupId: targetGroupId,
+        });
+      } catch (error) {
+        console.error('Failed to move item:', error);
+        // Revert on error
+        await loadData();
+      }
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
+
   const renderItemsByGroup = () => {
     const ungroupedItems = items.filter(item => !item.groupId);
     const groupedItems = groups.map(group => ({
@@ -164,107 +359,120 @@ export const ListDetailPage = () => {
       items: items.filter(item => item.groupId === group.id),
     }));
 
+    const allItemIds = items.map(item => item.id);
+
     return (
-      <>
-        {groupedItems.map(({ group, items: groupItems }) => (
-          <Box key={group.id} sx={{ mb: 2 }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, px: 1 }}>
-              {group.icon ? (
-                <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
-              ) : (
-                <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
-              )}
-              <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
-              <Chip size="small" label={groupItems.length} />
-              <IconButton
-                size="small"
-                aria-label={`add-item-to-group-${group.name}`}
-                onClick={() => {
-                  setPrefillGroupId(group.id);
-                  setOpenItemDialog(true);
-                }}
-                sx={{ ml: 1 }}
-              >
-                <AddIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-            <List dense sx={{ py: 0 }}>
-              {groupItems.map(item => (
-                <ListItem
-                  key={item.id}
-                  sx={{
-                    textDecoration: item.isBought ? 'line-through' : 'none',
-                    opacity: item.isBought ? 0.6 : 1,
-                    py: 0.5,
+      <SortableContext items={allItemIds} strategy={verticalListSortingStrategy}>
+        <>
+          {groupedItems.map(({ group, items: groupItems }) => (
+            <Paper
+              key={group.id}
+              elevation={1}
+              sx={{
+                mb: 2,
+                p: 1,
+                borderRadius: 2,
+                border: '2px dashed transparent',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  borderColor: 'primary.light',
+                },
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, px: 1 }}>
+                {group.icon ? (
+                  <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
+                ) : (
+                  <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
+                )}
+                <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
+                <Chip size="small" label={groupItems.length} />
+                <IconButton
+                  size="small"
+                  aria-label={`add-item-to-group-${group.name}`}
+                  onClick={() => {
+                    setPrefillGroupId(group.id);
+                    setOpenItemDialog(true);
                   }}
+                  sx={{ ml: 1 }}
                 >
-                  <ListItemIcon sx={{ minWidth: 40 }}>
-                    <Checkbox
-                      edge="start"
-                      checked={item.isBought}
-                      onChange={() => handleToggleBought(item)}
-                    />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.name}
-                    secondary={`${item.quantity} ${item.unit || 'pcs'}`}
-                  />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      aria-label="delete"
-                      size="small"
-                      onClick={() => handleDeleteItem(item.id, item.name)}
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+              <DroppableGroup id={group.id}>
+                <List dense sx={{ py: 0 }}>
+                  {groupItems.length === 0 ? (
+                    <ListItem
+                      sx={{
+                        py: 2,
+                        justifyContent: 'center',
+                        color: 'text.secondary',
+                        fontStyle: 'italic',
+                      }}
                     >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-            </List>
-            <Divider />
-          </Box>
-        ))}
-        <Box>
-          <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.5, px: 1 }}>
-            Ungrouped Items
-          </Typography>
-          <List dense sx={{ py: 0 }}>
-            {ungroupedItems.map(item => (
-              <ListItem
-                key={item.id}
-                sx={{
-                  textDecoration: item.isBought ? 'line-through' : 'none',
-                  opacity: item.isBought ? 0.6 : 1,
-                  py: 0.5,
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Checkbox
-                    edge="start"
-                    checked={item.isBought}
-                    onChange={() => handleToggleBought(item)}
-                  />
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.name}
-                  secondary={`${item.quantity} ${item.unit || 'pcs'}`}
-                />
-                <ListItemSecondaryAction>
-                  <IconButton
-                    edge="end"
-                    aria-label="delete"
-                    size="small"
-                    onClick={() => handleDeleteItem(item.id, item.name)}
+                      <Typography variant="body2">
+                        Drop items here or click + to add
+                      </Typography>
+                    </ListItem>
+                  ) : (
+                    groupItems.map(item => (
+                      <SortableItem
+                        key={item.id}
+                        item={item}
+                        onToggleBought={handleToggleBought}
+                        onDelete={handleDeleteItem}
+                      />
+                    ))
+                  )}
+                </List>
+              </DroppableGroup>
+            </Paper>
+          ))}
+          <Paper
+            elevation={1}
+            sx={{
+              p: 1,
+              borderRadius: 2,
+              border: '2px dashed transparent',
+              transition: 'all 0.2s',
+              '&:hover': {
+                borderColor: 'primary.light',
+              },
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.5, px: 1 }}>
+              Ungrouped Items
+            </Typography>
+            <DroppableGroup id="ungrouped">
+              <List dense sx={{ py: 0 }}>
+                {ungroupedItems.length === 0 ? (
+                  <ListItem
+                    sx={{
+                      py: 2,
+                      justifyContent: 'center',
+                      color: 'text.secondary',
+                      fontStyle: 'italic',
+                    }}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </>
+                    <Typography variant="body2">
+                      No ungrouped items
+                    </Typography>
+                  </ListItem>
+                ) : (
+                  ungroupedItems.map(item => (
+                    <SortableItem
+                      key={item.id}
+                      item={item}
+                      onToggleBought={handleToggleBought}
+                      onDelete={handleDeleteItem}
+                    />
+                  ))
+                )}
+              </List>
+            </DroppableGroup>
+          </Paper>
+        </>
+      </SortableContext>
     );
   };
 
@@ -277,121 +485,148 @@ export const ListDetailPage = () => {
   }
 
   return (
-    <Box sx={{ pb: 7 }}>
-      <AppBar position="static">
-        <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => navigate('/lists')}
-            sx={{ mr: 1 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Grocery List
-          </Typography>
-          {activeUsers.length > 0 && (
-            <Box sx={{ mr: 1 }}>
-              <AvatarGroup max={4}>
-                {activeUsers.map((user) => (
-                  <Tooltip key={user.userId} title={user.userName}>
-                    <Avatar
-                      sx={{
-                        width: 30,
-                        height: 30,
-                        fontSize: '0.75rem',
-                        bgcolor: 'secondary.main',
-                      }}
-                    >
-                      {user.userName.charAt(0).toUpperCase()}
-                    </Avatar>
-                  </Tooltip>
-                ))}
-              </AvatarGroup>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <Box sx={{ pb: 7 }}>
+        <AppBar position="static">
+          <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={() => navigate('/lists')}
+              sx={{ mr: 1 }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              Grocery List
+            </Typography>
+            {activeUsers.length > 0 && (
+              <Box sx={{ mr: 1 }}>
+                <AvatarGroup max={4}>
+                  {activeUsers.map((user) => (
+                    <Tooltip key={user.userId} title={user.userName}>
+                      <Avatar
+                        sx={{
+                          width: 30,
+                          height: 30,
+                          fontSize: '0.75rem',
+                          bgcolor: 'secondary.main',
+                        }}
+                      >
+                        {user.userName.charAt(0).toUpperCase()}
+                      </Avatar>
+                    </Tooltip>
+                  ))}
+                </AvatarGroup>
+              </Box>
+            )}
+            <IconButton color="inherit" onClick={() => setOpenShareDialog(true)}>
+              <ShareIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+
+        <Container maxWidth="md" sx={{ mt: 2, px: { xs: 2, sm: 3 } }}>
+          {items.length === 0 ? (
+            <Box textAlign="center" py={6}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No items yet
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Add your first grocery item!
+              </Typography>
             </Box>
+          ) : (
+            renderItemsByGroup()
           )}
-          <IconButton color="inherit" onClick={() => setOpenShareDialog(true)}>
-            <ShareIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+        </Container>
 
-      <Container maxWidth="md" sx={{ mt: 2, px: { xs: 2, sm: 3 } }}>
-        {items.length === 0 ? (
-          <Box textAlign="center" py={6}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No items yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Add your first grocery item!
-            </Typography>
-          </Box>
-        ) : (
-          renderItemsByGroup()
-        )}
-      </Container>
-
-      <Stack
-        direction="row"
-        spacing={2}
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-      >
-        <Fab
-          color="secondary"
-          aria-label="create group"
-          size="medium"
-          onClick={() => setOpenGroupDialog(true)}
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{ position: 'fixed', bottom: 16, right: 16 }}
         >
-          <FolderIcon />
-        </Fab>
-        <Fab
-          color="primary"
-          aria-label="add item"
-          size="medium"
-          onClick={() => setOpenItemDialog(true)}
-        >
-          <AddIcon />
-        </Fab>
-      </Stack>
+          <Fab
+            color="secondary"
+            aria-label="create group"
+            size="medium"
+            onClick={() => setOpenGroupDialog(true)}
+          >
+            <FolderIcon />
+          </Fab>
+          <Fab
+            color="primary"
+            aria-label="add item"
+            size="medium"
+            onClick={() => setOpenItemDialog(true)}
+          >
+            <AddIcon />
+          </Fab>
+        </Stack>
 
-      <AddItemDialog
-        open={openItemDialog}
-        groups={groups}
-        onClose={() => {
-          setOpenItemDialog(false);
-          setPrefillGroupId(undefined);
-        }}
-        onAdd={(name, quantity, unit, groupId) => {
-          handleAddItem(name, quantity, unit, groupId || prefillGroupId);
-        }}
-        onCreateGroup={async (name, color, icon) => {
-          if (!listId) return '';
-          const sortOrder = groups.length;
-          const group = await itemGroupService.create(listId, { name, icon, color, sortOrder });
-          await loadData();
-          return group.id;
-        }}
-      />
+        <AddItemDialog
+          open={openItemDialog}
+          groups={groups}
+          onClose={() => {
+            setOpenItemDialog(false);
+            setPrefillGroupId(undefined);
+          }}
+          onAdd={(name, quantity, unit, groupId) => {
+            handleAddItem(name, quantity, unit, groupId || prefillGroupId);
+          }}
+          onCreateGroup={async (name, color, icon) => {
+            if (!listId) return '';
+            const sortOrder = groups.length;
+            const group = await itemGroupService.create(listId, { name, icon, color, sortOrder });
+            await loadData();
+            return group.id;
+          }}
+        />
 
-      <ShareListDialog
-        open={openShareDialog}
-        listId={listId || ''}
-        onClose={() => setOpenShareDialog(false)}
-      />
+        <ShareListDialog
+          open={openShareDialog}
+          listId={listId || ''}
+          onClose={() => setOpenShareDialog(false)}
+        />
 
-      <CreateGroupDialog
-        open={openGroupDialog}
-        onClose={() => setOpenGroupDialog(false)}
-        onCreate={handleCreateGroup}
-      />
+        <CreateGroupDialog
+          open={openGroupDialog}
+          onClose={() => setOpenGroupDialog(false)}
+          onCreate={handleCreateGroup}
+        />
 
-      <CountdownDeleteSnackbar
-        open={countdownState.isCountingDown}
-        message={countdownState.message}
-        countdown={countdownState.countdown}
-        onCancel={cancelDelete}
-      />
-    </Box>
+        <CountdownDeleteSnackbar
+          open={countdownState.isCountingDown}
+          message={countdownState.message}
+          countdown={countdownState.countdown}
+          onCancel={cancelDelete}
+        />
+      </Box>
+
+      <DragOverlay>
+        {activeId ? (
+          <Paper
+            elevation={8}
+            sx={{
+              p: 2,
+              bgcolor: 'background.paper',
+              borderRadius: 1,
+              cursor: 'grabbing',
+              opacity: 0.9,
+            }}
+          >
+            <Typography variant="body1">
+              {items.find(item => item.id === activeId)?.name}
+            </Typography>
+          </Paper>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 };
