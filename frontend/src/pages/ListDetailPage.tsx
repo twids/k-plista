@@ -468,7 +468,7 @@ export const ListDetailPage = () => {
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, px: 1 }}>
                 <IconButton
                   size="small"
-                  aria-label={isGroupCollapsed(group.id) ? `expand-group-${group.name}` : `collapse-group-${group.name}`}
+                  aria-label={isGroupCollapsed(group.id) ? `Expand ${group.name} group` : `Collapse ${group.name} group`}
                   onClick={() => toggleGroupCollapse(group.id)}
                   sx={{ p: 0.5 }}
                 >

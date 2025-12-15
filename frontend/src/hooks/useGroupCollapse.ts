@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
  * Each group's collapse state is stored per list to maintain separate states across different lists.
  * 
  * @param listId - The ID of the grocery list
- * @returns Object containing collapse states and toggle function
+ * @returns Object with isGroupCollapsed function to check if a group is collapsed and toggleGroupCollapse function to toggle collapse state
  */
 export const useGroupCollapse = (listId: string | undefined) => {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
