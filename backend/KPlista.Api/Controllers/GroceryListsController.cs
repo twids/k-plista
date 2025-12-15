@@ -283,6 +283,7 @@ public class GroceryListsController : ControllerBase
         var bytes = new byte[32];
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         rng.GetBytes(bytes);
+        // Convert to base64url encoding: replace '+' with '-', '/' with '_', and trim '=' padding to make the token safe for use in URLs
         return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 }

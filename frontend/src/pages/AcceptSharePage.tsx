@@ -7,17 +7,15 @@ import { useAuth } from '../hooks/useAuth';
 export const AcceptSharePage = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
     const acceptShare = async () => {
-      if (authLoading || !user || !token || accepting) {
+      if (isAuthLoading || !user || !token) {
         return;
       }
 
-      setAccepting(true);
       try {
         const result = await groceryListService.acceptMagicLink(token);
         // Successfully accepted, redirect to the list
@@ -28,13 +26,11 @@ export const AcceptSharePage = () => {
       } catch (err) {
         console.error('Failed to accept share:', err);
         setError('Invalid share link. Please check the link or ask the list owner for a new one.');
-      } finally {
-        setAccepting(false);
       }
     };
 
     // Wait for authentication to complete
-    if (!authLoading) {
+    if (!isAuthLoading) {
       if (!user) {
         // User is not authenticated, redirect to login with returnUrl
         // The AuthContext will handle the redirect back after login
@@ -43,7 +39,7 @@ export const AcceptSharePage = () => {
         acceptShare();
       }
     }
-  }, [token, user, authLoading, navigate, accepting]);
+  }, [token, user, isAuthLoading, navigate]);
 
   if (error) {
     return (
