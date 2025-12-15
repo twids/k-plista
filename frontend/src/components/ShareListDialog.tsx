@@ -105,9 +105,14 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
     }
   };
 
-  const handleCopyMagicLink = () => {
-    navigator.clipboard.writeText(magicLink);
-    setShowCopied(true);
+  const handleCopyMagicLink = async () => {
+    try {
+      await navigator.clipboard.writeText(magicLink);
+      setShowCopied(true);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      alert('Failed to copy link to clipboard. Please copy it manually.');
+    }
   };
 
   const handleCloseCopiedSnackbar = () => {
