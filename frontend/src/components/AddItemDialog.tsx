@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -11,23 +11,46 @@ import {
   Box,
   Typography,
 } from '@mui/material';
-import type { ItemGroup } from '../types';
+import type { ItemGroup, GroceryItem } from '../types';
 import { CreateGroupDialog } from './CreateGroupDialog';
 
 interface AddItemDialogProps {
   open: boolean;
   groups: ItemGroup[];
+  editItem?: GroceryItem; // Item to edit, if in edit mode
   onClose: () => void;
   onAdd: (name: string, quantity: number, unit?: string, groupId?: string) => void;
+  onEdit?: (id: string, name: string, quantity: number, unit?: string, groupId?: string) => void;
   onCreateGroup?: (name: string, color?: string, icon?: string) => Promise<string>; // returns new groupId
 }
 
-export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: AddItemDialogProps) => {
+export const AddItemDialog = ({ open, groups, editItem, onClose, onAdd, onEdit, onCreateGroup }: AddItemDialogProps) => {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState('');
   const [groupId, setGroupId] = useState('');
   const [showNewGroupDialog, setShowNewGroupDialog] = useState(false);
+
+  // Helper function to reset form
+  const resetForm = useCallback(() => {
+    setName('');
+    setQuantity(1);
+    setUnit('');
+    setGroupId('');
+  }, []);
+
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (editItem && open) {
+      setName(editItem.name);
+      setQuantity(editItem.quantity);
+      setUnit(editItem.unit || '');
+      setGroupId(editItem.groupId || '');
+    } else if (!editItem && open) {
+      // Reset form when opening in add mode
+      resetForm();
+    }
+  }, [editItem, open, resetForm]);
 
   const handleGroupChange = (value: string) => {
     if (value === '__new__') {
@@ -40,11 +63,12 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
 
   const handleSubmit = () => {
     if (name.trim()) {
-      onAdd(name, quantity, unit || undefined, groupId || undefined);
-      setName('');
-      setQuantity(1);
-      setUnit('');
-      setGroupId('');
+      if (editItem && onEdit) {
+        onEdit(editItem.id, name, quantity, unit || undefined, groupId || undefined);
+      } else {
+        onAdd(name, quantity, unit || undefined, groupId || undefined);
+      }
+      resetForm();
     }
   };
 
@@ -55,9 +79,11 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
     setShowNewGroupDialog(false);
   };
 
+  const isEditMode = !!editItem;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add Item</DialogTitle>
+      <DialogTitle>{isEditMode ? 'Edit Item' : 'Add Item'}</DialogTitle>
       <DialogContent>
         <TextField
           autoFocus
@@ -122,7 +148,7 @@ export const AddItemDialog = ({ open, groups, onClose, onAdd, onCreateGroup }: A
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button onClick={handleSubmit} variant="contained" disabled={!name.trim()}>
-          Add
+          {isEditMode ? 'Save' : 'Add'}
         </Button>
       </DialogActions>
 

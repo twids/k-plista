@@ -25,6 +25,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import ShareIcon from '@mui/icons-material/Share';
 import FolderIcon from '@mui/icons-material/Folder';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -62,10 +63,11 @@ import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
 interface SortableItemProps {
   item: GroceryItem;
   onToggleBought: (item: GroceryItem) => void;
+  onEdit: (item: GroceryItem) => void;
   onDelete: (itemId: string, itemName: string) => void;
 }
 
-const SortableItem = ({ item, onToggleBought, onDelete }: SortableItemProps) => {
+const SortableItem = ({ item, onToggleBought, onEdit, onDelete }: SortableItemProps) => {
   const {
     attributes,
     listeners,
@@ -119,6 +121,15 @@ const SortableItem = ({ item, onToggleBought, onDelete }: SortableItemProps) => 
       <ListItemSecondaryAction>
         <IconButton
           edge="end"
+          aria-label={`edit ${item.name}`}
+          size="small"
+          onClick={() => onEdit(item)}
+          sx={{ mr: 1 }}
+        >
+          <EditIcon fontSize="small" />
+        </IconButton>
+        <IconButton
+          edge="end"
           aria-label="delete"
           size="small"
           onClick={() => onDelete(item.id, item.name)}
@@ -163,6 +174,7 @@ export const ListDetailPage = () => {
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [openItemDialog, setOpenItemDialog] = useState(false);
+  const [editingItem, setEditingItem] = useState<GroceryItem | undefined>(undefined);
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [openGroupDialog, setOpenGroupDialog] = useState(false);
   const [prefillGroupId, setPrefillGroupId] = useState<string | undefined>(undefined);
@@ -263,6 +275,12 @@ export const ListDetailPage = () => {
     initiateDelete(itemId, `Deleting "${itemName}"`);
   };
 
+  const handleEditItem = (item: GroceryItem) => {
+    setEditingItem(item);
+    setPrefillGroupId(undefined);
+    setOpenItemDialog(true);
+  };
+
   const handleAddItem = async (name: string, quantity: number, unit?: string, groupId?: string) => {
     if (!listId) return;
     try {
@@ -271,6 +289,24 @@ export const ListDetailPage = () => {
       setPrefillGroupId(undefined);
     } catch (error) {
       console.error('Failed to add item:', error);
+    }
+  };
+
+  const handleUpdateItem = async (id: string, name: string, quantity: number, unit?: string, groupId?: string) => {
+    if (!listId || !editingItem) return;
+    try {
+      await groceryItemService.update(listId, id, { 
+        name, 
+        description: editingItem.description,
+        quantity, 
+        unit, 
+        groupId 
+      });
+      setOpenItemDialog(false);
+      setEditingItem(undefined);
+      setPrefillGroupId(undefined);
+    } catch (error) {
+      console.error('Failed to update item:', error);
     }
   };
 
@@ -391,6 +427,7 @@ export const ListDetailPage = () => {
                   size="small"
                   aria-label={`add-item-to-group-${group.name}`}
                   onClick={() => {
+                    setEditingItem(undefined);
                     setPrefillGroupId(group.id);
                     setOpenItemDialog(true);
                   }}
@@ -420,6 +457,7 @@ export const ListDetailPage = () => {
                         key={item.id}
                         item={item}
                         onToggleBought={handleToggleBought}
+                        onEdit={handleEditItem}
                         onDelete={handleDeleteItem}
                       />
                     ))
@@ -464,6 +502,7 @@ export const ListDetailPage = () => {
                       key={item.id}
                       item={item}
                       onToggleBought={handleToggleBought}
+                      onEdit={handleEditItem}
                       onDelete={handleDeleteItem}
                     />
                   ))
@@ -564,7 +603,10 @@ export const ListDetailPage = () => {
             color="primary"
             aria-label="add item"
             size="medium"
-            onClick={() => setOpenItemDialog(true)}
+            onClick={() => {
+              setEditingItem(undefined);
+              setOpenItemDialog(true);
+            }}
           >
             <AddIcon />
           </Fab>
@@ -573,13 +615,16 @@ export const ListDetailPage = () => {
         <AddItemDialog
           open={openItemDialog}
           groups={groups}
+          editItem={editingItem}
           onClose={() => {
             setOpenItemDialog(false);
+            setEditingItem(undefined);
             setPrefillGroupId(undefined);
           }}
           onAdd={(name, quantity, unit, groupId) => {
             handleAddItem(name, quantity, unit, groupId || prefillGroupId);
           }}
+          onEdit={handleUpdateItem}
           onCreateGroup={async (name, color, icon) => {
             if (!listId) return '';
             const sortOrder = groups.length;
