@@ -519,6 +519,8 @@ export const ListDetailPage = () => {
               <DroppableGroup id={group.id}>
                 {isGroupCollapsed(group.id) ? (
                   <Box
+                    role="region"
+                    aria-label={`Drop zone for ${group.name} group`}
                     sx={{
                       py: 1.5,
                       px: 2,
