@@ -661,6 +661,7 @@ export const ListDetailPage = () => {
             size="medium"
             onClick={() => {
               setEditingItem(undefined);
+              setPrefillGroupId(undefined);
               setOpenItemDialog(true);
             }}
           >
