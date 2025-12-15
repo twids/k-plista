@@ -40,6 +40,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
   const [shares, setShares] = useState<ListShare[]>([]);
   const [loading, setLoading] = useState(false);
   const [magicLink, setMagicLink] = useState('');
+  const [magicLinkCanEdit, setMagicLinkCanEdit] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,7 +97,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
   const handleGenerateMagicLink = async () => {
     setLoading(true);
     try {
-      const data = await groceryListService.generateMagicLink(listId);
+      const data = await groceryListService.generateMagicLink(listId, { canEdit: magicLinkCanEdit });
       setMagicLink(data.shareUrl);
     } catch (error) {
       console.error('Failed to generate magic link:', error);
@@ -134,33 +135,50 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
             Share via Magic Link
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Generate a link that anyone can use to access this list (view-only)
+            Generate a link that anyone can use to access this list
           </Typography>
           {!magicLink ? (
-            <Button
-              variant="outlined"
-              startIcon={<LinkIcon />}
-              onClick={handleGenerateMagicLink}
-              disabled={loading}
-              fullWidth
-            >
-              Generate Magic Link
-            </Button>
+            <>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={magicLinkCanEdit}
+                    onChange={(e) => setMagicLinkCanEdit(e.target.checked)}
+                  />
+                }
+                label="Allow edit access"
+                sx={{ mb: 2 }}
+              />
+              <Button
+                variant="outlined"
+                startIcon={<LinkIcon />}
+                onClick={handleGenerateMagicLink}
+                disabled={loading}
+                fullWidth
+              >
+                Generate Magic Link
+              </Button>
+            </>
           ) : (
-            <TextField
-              fullWidth
-              value={magicLink}
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={handleCopyMagicLink} edge="end">
-                      <ContentCopyIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+            <>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                Permission: {magicLinkCanEdit ? 'Can edit' : 'View only'}
+              </Typography>
+              <TextField
+                fullWidth
+                value={magicLink}
+                InputProps={{
+                  readOnly: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={handleCopyMagicLink} edge="end">
+                        <ContentCopyIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </>
           )}
         </Box>
 

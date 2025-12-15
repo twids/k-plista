@@ -25,7 +25,12 @@ public record UpdateGroceryListDto(
 
 public record MagicLinkDto(
     string ShareToken,
-    string ShareUrl
+    string ShareUrl,
+    bool CanEdit
+);
+
+public record GenerateMagicLinkDto(
+    bool CanEdit
 );
 
 public record AcceptShareDto(

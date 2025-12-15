@@ -200,7 +200,7 @@ public class GroceryListsController : ControllerBase
 
     // POST: api/grocerylists/{id}/magiclink
     [HttpPost("{id}/magiclink")]
-    public async Task<ActionResult<MagicLinkDto>> GenerateMagicLink(Guid id)
+    public async Task<ActionResult<MagicLinkDto>> GenerateMagicLink(Guid id, [FromBody] GenerateMagicLinkDto dto)
     {
         var userId = GetCurrentUserId();
 
@@ -219,6 +219,7 @@ public class GroceryListsController : ControllerBase
 
         // Generate a unique share token
         list.ShareToken = GenerateSecureToken();
+        list.ShareTokenCanEdit = dto.CanEdit;
         list.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -226,9 +227,9 @@ public class GroceryListsController : ControllerBase
         // Construct the share URL
         var shareUrl = $"{Request.Scheme}://{Request.Host}/share/{list.ShareToken}";
 
-        var dto = new MagicLinkDto(list.ShareToken, shareUrl);
+        var result = new MagicLinkDto(list.ShareToken, shareUrl, list.ShareTokenCanEdit);
 
-        return Ok(dto);
+        return Ok(result);
     }
 
     // GET: api/grocerylists/accept-share/{token}
@@ -260,13 +261,13 @@ public class GroceryListsController : ControllerBase
             return Ok(new AcceptShareDto(list.Id, list.Name, list.Owner.Name));
         }
 
-        // Create a new share for this user with view-only access (by default)
+        // Create a new share for this user with the permission level set by the owner
         var share = new ListShare
         {
             Id = Guid.NewGuid(),
             GroceryListId = list.Id,
             SharedWithUserId = userId,
-            CanEdit = false, // Magic links provide read-only access by default
+            CanEdit = list.ShareTokenCanEdit,
             SharedAt = DateTime.UtcNow
         };
 

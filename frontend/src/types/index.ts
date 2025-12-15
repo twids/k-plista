@@ -109,6 +109,11 @@ export interface ItemRemovedUpdate {
 export interface MagicLink {
   shareToken: string;
   shareUrl: string;
+  canEdit: boolean;
+}
+
+export interface GenerateMagicLinkDto {
+  canEdit: boolean;
 }
 
 export interface AcceptShare {
