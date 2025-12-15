@@ -99,7 +99,11 @@ const SortableItem = ({ item, onToggleBought, onEdit, onDelete }: SortableItemPr
       }}
     >
       <ListItemIcon
-        sx={{ minWidth: 40, cursor: 'grab' }}
+        sx={{ 
+          minWidth: 40, 
+          cursor: 'grab',
+          touchAction: 'none', // Prevent default touch behaviors (scrolling) on drag handle
+        }}
         {...attributes}
         {...listeners}
         aria-label={`Drag ${item.name}`}
@@ -186,6 +190,8 @@ export const ListDetailPage = () => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8, // 8px movement required before drag starts
+        delay: 250, // 250ms delay for touch devices to distinguish drag from scroll
+        tolerance: 5, // Allow 5px of movement during the delay
       },
     }),
     useSensor(KeyboardSensor, {
