@@ -6,6 +6,7 @@ import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
 import { ListsPage } from './pages/ListsPage';
 import { ListDetailPage } from './pages/ListDetailPage';
+import { AcceptSharePage } from './pages/AcceptSharePage';
 
 const theme = createTheme({
   palette: {
@@ -43,6 +44,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/share/:token" element={<AcceptSharePage />} />
       <Route
         path="/lists"
         element={

@@ -197,4 +197,91 @@ public class GroceryListsController : ControllerBase
 
         return NoContent();
     }
+
+    // POST: api/grocerylists/{id}/magiclink
+    [HttpPost("{id}/magiclink")]
+    public async Task<ActionResult<MagicLinkDto>> GenerateMagicLink(Guid id)
+    {
+        var userId = GetCurrentUserId();
+
+        var list = await _context.GroceryLists.FindAsync(id);
+
+        if (list == null)
+        {
+            return NotFound();
+        }
+
+        // Only owner can generate magic link
+        if (list.OwnerId != userId)
+        {
+            return Forbid();
+        }
+
+        // Generate a unique share token
+        list.ShareToken = GenerateSecureToken();
+        list.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        // Construct the share URL
+        var shareUrl = $"{Request.Scheme}://{Request.Host}/share/{list.ShareToken}";
+
+        var dto = new MagicLinkDto(list.ShareToken, shareUrl);
+
+        return Ok(dto);
+    }
+
+    // GET: api/grocerylists/accept-share/{token}
+    [HttpGet("accept-share/{token}")]
+    public async Task<ActionResult<AcceptShareDto>> AcceptMagicLink(string token)
+    {
+        var userId = GetCurrentUserId();
+
+        var list = await _context.GroceryLists
+            .Include(gl => gl.Owner)
+            .Include(gl => gl.Shares)
+            .FirstOrDefaultAsync(gl => gl.ShareToken == token);
+
+        if (list == null)
+        {
+            return NotFound(new { message = "Invalid or expired share link" });
+        }
+
+        // Check if user is already owner
+        if (list.OwnerId == userId)
+        {
+            return Ok(new AcceptShareDto(list.Id, list.Name, list.Owner.Name));
+        }
+
+        // Check if user already has access
+        var existingShare = list.Shares.FirstOrDefault(s => s.SharedWithUserId == userId);
+        if (existingShare != null)
+        {
+            return Ok(new AcceptShareDto(list.Id, list.Name, list.Owner.Name));
+        }
+
+        // Create a new share for this user with view-only access (by default)
+        var share = new ListShare
+        {
+            Id = Guid.NewGuid(),
+            GroceryListId = list.Id,
+            SharedWithUserId = userId,
+            CanEdit = false, // Magic links provide read-only access by default
+            SharedAt = DateTime.UtcNow
+        };
+
+        _context.ListShares.Add(share);
+        await _context.SaveChangesAsync();
+
+        return Ok(new AcceptShareDto(list.Id, list.Name, list.Owner.Name));
+    }
+
+    private static string GenerateSecureToken()
+    {
+        // Generate a cryptographically secure random token
+        var bytes = new byte[32];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(bytes);
+        return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
 }

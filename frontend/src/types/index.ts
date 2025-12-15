@@ -105,3 +105,14 @@ export interface ItemBoughtStatusUpdate {
 export interface ItemRemovedUpdate {
   id: string;
 }
+
+export interface MagicLink {
+  shareToken: string;
+  shareUrl: string;
+}
+
+export interface AcceptShare {
+  listId: string;
+  listName: string;
+  ownerName: string;
+}

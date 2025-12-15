@@ -22,3 +22,14 @@ public record UpdateGroceryListDto(
     string Name,
     string? Description
 );
+
+public record MagicLinkDto(
+    string ShareToken,
+    string ShareUrl
+);
+
+public record AcceptShareDto(
+    Guid ListId,
+    string ListName,
+    string OwnerName
+);

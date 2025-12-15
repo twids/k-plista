@@ -48,6 +48,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Fetch current user - API calls will include cookie in requests
           const currentUser = await authService.getCurrentUser();
           setUser(currentUser);
+          
+          // Check if there's a returnUrl in sessionStorage
+          const returnUrl = sessionStorage.getItem('returnUrl');
+          if (returnUrl) {
+            sessionStorage.removeItem('returnUrl');
+            window.location.href = returnUrl;
+          }
+          
           setLoading(false);
           return;
         } catch (err) {

@@ -14,9 +14,16 @@ import {
   FormControlLabel,
   Typography,
   Box,
+  Divider,
+  InputAdornment,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LinkIcon from '@mui/icons-material/Link';
 import { listShareService } from '../services/listShareService';
+import { groceryListService } from '../services/groceryListService';
 import type { ListShare } from '../types';
 import { useCountdownDelete } from '../hooks/useCountdownDelete';
 import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
@@ -32,6 +39,8 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
   const [canEdit, setCanEdit] = useState(true);
   const [shares, setShares] = useState<ListShare[]>([]);
   const [loading, setLoading] = useState(false);
+  const [magicLink, setMagicLink] = useState('');
+  const [showCopied, setShowCopied] = useState(false);
 
   const handleRemoveShareAction = async (shareId: string) => {
     try {
@@ -83,10 +92,74 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
     initiateDelete(shareId, `Removing access for "${userName}"`);
   };
 
+  const handleGenerateMagicLink = async () => {
+    setLoading(true);
+    try {
+      const data = await groceryListService.generateMagicLink(listId);
+      setMagicLink(data.shareUrl);
+    } catch (error) {
+      console.error('Failed to generate magic link:', error);
+      alert('Failed to generate magic link.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyMagicLink = () => {
+    navigator.clipboard.writeText(magicLink);
+    setShowCopied(true);
+  };
+
+  const handleCloseCopiedSnackbar = () => {
+    setShowCopied(false);
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Share List</DialogTitle>
       <DialogContent>
+        {/* Magic Link Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Share via Magic Link
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Generate a link that anyone can use to access this list (view-only)
+          </Typography>
+          {!magicLink ? (
+            <Button
+              variant="outlined"
+              startIcon={<LinkIcon />}
+              onClick={handleGenerateMagicLink}
+              disabled={loading}
+              fullWidth
+            >
+              Generate Magic Link
+            </Button>
+          ) : (
+            <TextField
+              fullWidth
+              value={magicLink}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={handleCopyMagicLink} edge="end">
+                      <ContentCopyIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* Email Sharing Section */}
+        <Typography variant="subtitle2" gutterBottom>
+          Share with specific users
+        </Typography>
         <TextField
           autoFocus
           margin="dense"
@@ -157,6 +230,17 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
         countdown={countdownState.countdown}
         onCancel={cancelDelete}
       />
+
+      <Snackbar
+        open={showCopied}
+        autoHideDuration={3000}
+        onClose={handleCloseCopiedSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseCopiedSnackbar} severity="success" sx={{ width: '100%' }}>
+          Link copied to clipboard!
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };
