@@ -56,9 +56,9 @@ export const CreateGroupDialog = ({ open, onClose, onCreate, onEdit, editGroup }
     } else {
       setName('');
       setColor(groupColors[0]);
-      clearEmoji();
+      setIcon('');
     }
-  }, [editGroup, clearEmoji, setIcon]);
+  }, [editGroup, setIcon]);
 
   const handleSubmit = () => {
     if (name.trim()) {
