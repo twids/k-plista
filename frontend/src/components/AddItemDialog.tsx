@@ -49,13 +49,13 @@ export const AddItemDialog = ({ open, groups, editItem, prefillGroupId, onClose,
       setGroupId(editItem.groupId || '');
     } else if (!editItem && open) {
       // Reset form when opening in add mode
-      resetForm();
-      // If prefillGroupId is provided, set it as the initial group
-      if (prefillGroupId) {
-        setGroupId(prefillGroupId);
-      }
+      setName('');
+      setQuantity(1);
+      setUnit('');
+      // Set groupId to prefillGroupId if provided, otherwise empty string
+      setGroupId(prefillGroupId || '');
     }
-  }, [editItem, open, resetForm, prefillGroupId]);
+  }, [editItem, open, prefillGroupId]);
 
   const handleGroupChange = (value: string) => {
     if (value === '__new__') {
