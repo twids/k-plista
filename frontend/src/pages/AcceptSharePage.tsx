@@ -27,7 +27,7 @@ export const AcceptSharePage = () => {
         });
       } catch (err) {
         console.error('Failed to accept share:', err);
-        setError('Invalid or expired share link. Please ask the list owner to send you a new link.');
+        setError('Invalid share link. Please check the link or ask the list owner for a new one.');
       } finally {
         setAccepting(false);
       }

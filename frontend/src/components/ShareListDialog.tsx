@@ -41,6 +41,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
   const [loading, setLoading] = useState(false);
   const [magicLink, setMagicLink] = useState('');
   const [showCopied, setShowCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRemoveShareAction = async (shareId: string) => {
     try {
@@ -82,7 +83,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
       await loadShares();
     } catch (error) {
       console.error('Failed to share list:', error);
-      alert('Failed to share list. Make sure the email is correct.');
+      setError('Failed to share list. Make sure the email is correct.');
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
       setMagicLink(data.shareUrl);
     } catch (error) {
       console.error('Failed to generate magic link:', error);
-      alert('Failed to generate magic link.');
+      setError('Failed to generate magic link.');
     } finally {
       setLoading(false);
     }
@@ -111,12 +112,16 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
       setShowCopied(true);
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
-      alert('Failed to copy link to clipboard. Please copy it manually.');
+      setError('Failed to copy link to clipboard. Please copy it manually.');
     }
   };
 
   const handleCloseCopiedSnackbar = () => {
     setShowCopied(false);
+  };
+
+  const handleCloseErrorSnackbar = () => {
+    setError(null);
   };
 
   return (
@@ -244,6 +249,17 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
       >
         <Alert onClose={handleCloseCopiedSnackbar} severity="success" sx={{ width: '100%' }}>
           Link copied to clipboard!
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseErrorSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseErrorSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
         </Alert>
       </Snackbar>
     </Dialog>
