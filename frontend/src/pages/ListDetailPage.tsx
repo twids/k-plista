@@ -177,6 +177,7 @@ export const ListDetailPage = () => {
   const [editingItem, setEditingItem] = useState<GroceryItem | undefined>(undefined);
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [openGroupDialog, setOpenGroupDialog] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<ItemGroup | undefined>(undefined);
   const [prefillGroupId, setPrefillGroupId] = useState<string | undefined>(undefined);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -201,7 +202,22 @@ export const ListDetailPage = () => {
     }
   };
 
+  const handleDeleteGroupAction = async (groupId: string) => {
+    if (!listId) return;
+    try {
+      await itemGroupService.delete(listId, groupId);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to delete group:', error);
+    }
+  };
+
   const { countdownState, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteItemAction);
+  const { 
+    countdownState: groupCountdownState, 
+    initiateDelete: initiateGroupDelete, 
+    cancelDelete: cancelGroupDelete 
+  } = useCountdownDelete(handleDeleteGroupAction);
 
   const loadData = useCallback(async () => {
     if (!listId) return;
@@ -317,9 +333,31 @@ export const ListDetailPage = () => {
       await itemGroupService.create(listId, { name, icon, color, sortOrder });
       await loadData();
       setOpenGroupDialog(false);
+      setEditingGroup(undefined);
     } catch (error) {
       console.error('Failed to create group:', error);
     }
+  };
+
+  const handleEditGroup = async (id: string, name: string, color?: string, icon?: string) => {
+    if (!listId || !editingGroup) return;
+    try {
+      await itemGroupService.update(listId, id, { 
+        name, 
+        icon, 
+        color, 
+        sortOrder: editingGroup.sortOrder 
+      });
+      await loadData();
+      setOpenGroupDialog(false);
+      setEditingGroup(undefined);
+    } catch (error) {
+      console.error('Failed to update group:', error);
+    }
+  };
+
+  const handleDeleteGroup = (groupId: string, groupName: string) => {
+    initiateGroupDelete(groupId, `Deleting group "${groupName}"`);
   };
 
   // Drag and drop handlers
@@ -423,6 +461,25 @@ export const ListDetailPage = () => {
                 )}
                 <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
                 <Chip size="small" label={groupItems.length} />
+                <Box sx={{ flexGrow: 1 }} />
+                <IconButton
+                  size="small"
+                  aria-label={`edit-group-${group.name}`}
+                  onClick={() => {
+                    setEditingGroup(group);
+                    setOpenGroupDialog(true);
+                  }}
+                  sx={{ ml: 'auto' }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  aria-label={`delete-group-${group.name}`}
+                  onClick={() => handleDeleteGroup(group.id, group.name)}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
                 <IconButton
                   size="small"
                   aria-label={`add-item-to-group-${group.name}`}
@@ -642,8 +699,13 @@ export const ListDetailPage = () => {
 
         <CreateGroupDialog
           open={openGroupDialog}
-          onClose={() => setOpenGroupDialog(false)}
+          onClose={() => {
+            setOpenGroupDialog(false);
+            setEditingGroup(undefined);
+          }}
           onCreate={handleCreateGroup}
+          onEdit={handleEditGroup}
+          editGroup={editingGroup}
         />
 
         <CountdownDeleteSnackbar
@@ -651,6 +713,13 @@ export const ListDetailPage = () => {
           message={countdownState.message}
           countdown={countdownState.countdown}
           onCancel={cancelDelete}
+        />
+
+        <CountdownDeleteSnackbar
+          open={groupCountdownState.isCountingDown}
+          message={groupCountdownState.message}
+          countdown={groupCountdownState.countdown}
+          onCancel={cancelGroupDelete}
         />
       </Box>
 
