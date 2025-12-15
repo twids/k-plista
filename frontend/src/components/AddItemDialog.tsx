@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -32,12 +32,12 @@ export const AddItemDialog = ({ open, groups, editItem, onClose, onAdd, onEdit, 
   const [showNewGroupDialog, setShowNewGroupDialog] = useState(false);
 
   // Helper function to reset form
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setName('');
     setQuantity(1);
     setUnit('');
     setGroupId('');
-  };
+  }, []);
 
   // Pre-populate form when editing
   useEffect(() => {
@@ -50,7 +50,7 @@ export const AddItemDialog = ({ open, groups, editItem, onClose, onAdd, onEdit, 
       // Reset form when opening in add mode
       resetForm();
     }
-  }, [editItem, open]);
+  }, [editItem, open, resetForm]);
 
   const handleGroupChange = (value: string) => {
     if (value === '__new__') {

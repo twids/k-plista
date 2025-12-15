@@ -277,6 +277,7 @@ export const ListDetailPage = () => {
 
   const handleEditItem = (item: GroceryItem) => {
     setEditingItem(item);
+    setPrefillGroupId(undefined);
     setOpenItemDialog(true);
   };
 
@@ -292,9 +293,15 @@ export const ListDetailPage = () => {
   };
 
   const handleUpdateItem = async (id: string, name: string, quantity: number, unit?: string, groupId?: string) => {
-    if (!listId) return;
+    if (!listId || !editingItem) return;
     try {
-      await groceryItemService.update(listId, id, { name, quantity, unit, groupId });
+      await groceryItemService.update(listId, id, { 
+        name, 
+        description: editingItem.description,
+        quantity, 
+        unit, 
+        groupId 
+      });
       setOpenItemDialog(false);
       setEditingItem(undefined);
       setPrefillGroupId(undefined);
