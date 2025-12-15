@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -17,11 +17,14 @@ import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import ClearIcon from '@mui/icons-material/Clear';
 import { COMMON_EMOJIS, EMOJI_DISPLAY_SIZE, EMOJI_SELECTOR_SIZE, EMOJI_PICKER_HELP_TEXT } from '../constants/emojis';
 import { useEmojiPicker } from '../hooks/useEmojiPicker';
+import type { ItemGroup } from '../types';
 
 interface CreateGroupDialogProps {
   open: boolean;
   onClose: () => void;
   onCreate: (name: string, color?: string, icon?: string) => void;
+  onEdit?: (id: string, name: string, color?: string, icon?: string) => void;
+  editGroup?: ItemGroup;
 }
 
 const groupColors = [
@@ -37,14 +40,33 @@ const groupColors = [
   '#FF9800', // Orange
 ];
 
-export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialogProps) => {
+export const CreateGroupDialog = ({ open, onClose, onCreate, onEdit, editGroup }: CreateGroupDialogProps) => {
   const [name, setName] = useState('');
   const [color, setColor] = useState(groupColors[0]);
   const { emoji: icon, setEmoji: setIcon, emojiInputRef, handleEmojiInputChange, handleEmojiClick, clearEmoji } = useEmojiPicker();
 
+  const isEditMode = !!editGroup;
+
+  // Populate form when editGroup changes
+  useEffect(() => {
+    if (editGroup) {
+      setName(editGroup.name);
+      setColor(editGroup.color || groupColors[0]);
+      setIcon(editGroup.icon || '');
+    } else {
+      setName('');
+      setColor(groupColors[0]);
+      setIcon('');
+    }
+  }, [editGroup, setIcon]);
+
   const handleSubmit = () => {
     if (name.trim()) {
-      onCreate(name, color, icon || undefined);
+      if (isEditMode && editGroup && onEdit) {
+        onEdit(editGroup.id, name, color, icon || undefined);
+      } else {
+        onCreate(name, color, icon || undefined);
+      }
       setName('');
       setColor(groupColors[0]);
       clearEmoji();
@@ -60,7 +82,7 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Create Group</DialogTitle>
+      <DialogTitle>{isEditMode ? 'Edit Group' : 'Create Group'}</DialogTitle>
       <DialogContent>
         <TextField
           autoFocus
@@ -170,7 +192,7 @@ export const CreateGroupDialog = ({ open, onClose, onCreate }: CreateGroupDialog
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
         <Button onClick={handleSubmit} variant="contained" disabled={!name.trim()}>
-          Create
+          {isEditMode ? 'Save' : 'Create'}
         </Button>
       </DialogActions>
     </Dialog>
