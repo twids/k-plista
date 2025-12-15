@@ -667,6 +667,7 @@ export const ListDetailPage = () => {
             size="medium"
             onClick={() => {
               setEditingItem(undefined);
+              setPrefillGroupId(undefined);
               setOpenItemDialog(true);
             }}
           >
@@ -678,6 +679,7 @@ export const ListDetailPage = () => {
           open={openItemDialog}
           groups={groups}
           editItem={editingItem}
+          prefillGroupId={prefillGroupId}
           onClose={() => {
             setOpenItemDialog(false);
             setEditingItem(undefined);

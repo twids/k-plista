@@ -18,13 +18,14 @@ interface AddItemDialogProps {
   open: boolean;
   groups: ItemGroup[];
   editItem?: GroceryItem; // Item to edit, if in edit mode
+  prefillGroupId?: string; // Pre-fill group when adding from a specific group
   onClose: () => void;
   onAdd: (name: string, quantity: number, unit?: string, groupId?: string) => void;
   onEdit?: (id: string, name: string, quantity: number, unit?: string, groupId?: string) => void;
   onCreateGroup?: (name: string, color?: string, icon?: string) => Promise<string>; // returns new groupId
 }
 
-export const AddItemDialog = ({ open, groups, editItem, onClose, onAdd, onEdit, onCreateGroup }: AddItemDialogProps) => {
+export const AddItemDialog = ({ open, groups, editItem, prefillGroupId, onClose, onAdd, onEdit, onCreateGroup }: AddItemDialogProps) => {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState('');
@@ -48,9 +49,13 @@ export const AddItemDialog = ({ open, groups, editItem, onClose, onAdd, onEdit, 
       setGroupId(editItem.groupId || '');
     } else if (!editItem && open) {
       // Reset form when opening in add mode
-      resetForm();
+      setName('');
+      setQuantity(1);
+      setUnit('');
+      // Set groupId to prefillGroupId if provided, otherwise empty string
+      setGroupId(prefillGroupId || '');
     }
-  }, [editItem, open, resetForm]);
+  }, [editItem, open, prefillGroupId]);
 
   const handleGroupChange = (value: string) => {
     if (value === '__new__') {
