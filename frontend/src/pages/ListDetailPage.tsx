@@ -445,12 +445,12 @@ export const ListDetailPage = () => {
       items: items.filter(item => item.groupId === group.id),
     }));
 
-    const allItemIds = items.map(item => item.id);
-
     return (
-      <SortableContext items={allItemIds} strategy={verticalListSortingStrategy}>
-        <>
-          {groupedItems.map(({ group, items: groupItems }) => (
+      <>
+        {groupedItems.map(({ group, items: groupItems }) => {
+          const groupItemIds = groupItems.map(item => item.id);
+          
+          return (
             <Paper
               key={group.id}
               elevation={1}
@@ -533,52 +533,56 @@ export const ListDetailPage = () => {
                     Drop items here to add to group
                   </Box>
                 ) : (
-                  <List dense sx={{ py: 0 }}>
-                    {groupItems.length === 0 ? (
-                      <ListItem
-                        sx={{
-                          py: 2,
-                          justifyContent: 'center',
-                          color: 'text.secondary',
-                          fontStyle: 'italic',
-                        }}
-                      >
-                        <Typography variant="body2">
-                          Drop items here or click + to add
-                        </Typography>
-                      </ListItem>
-                    ) : (
-                      groupItems.map(item => (
-                        <SortableItem
-                          key={item.id}
-                          item={item}
-                          onToggleBought={handleToggleBought}
-                          onEdit={handleEditItem}
-                          onDelete={handleDeleteItem}
-                        />
-                      ))
-                    )}
-                  </List>
+                  <SortableContext items={groupItemIds} strategy={verticalListSortingStrategy}>
+                    <List dense sx={{ py: 0 }}>
+                      {groupItems.length === 0 ? (
+                        <ListItem
+                          sx={{
+                            py: 2,
+                            justifyContent: 'center',
+                            color: 'text.secondary',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          <Typography variant="body2">
+                            Drop items here or click + to add
+                          </Typography>
+                        </ListItem>
+                      ) : (
+                        groupItems.map(item => (
+                          <SortableItem
+                            key={item.id}
+                            item={item}
+                            onToggleBought={handleToggleBought}
+                            onEdit={handleEditItem}
+                            onDelete={handleDeleteItem}
+                          />
+                        ))
+                      )}
+                    </List>
+                  </SortableContext>
                 )}
               </DroppableGroup>
             </Paper>
-          ))}
-          <Paper
-            elevation={1}
-            sx={{
-              p: 1,
-              borderRadius: 2,
-              border: '2px dashed transparent',
-              transition: 'all 0.2s',
-              '&:hover': {
-                borderColor: 'primary.light',
-              },
-            }}
-          >
-            <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.5, px: 1 }}>
-              Ungrouped Items
-            </Typography>
-            <DroppableGroup id="ungrouped">
+          );
+        })}
+        <Paper
+          elevation={1}
+          sx={{
+            p: 1,
+            borderRadius: 2,
+            border: '2px dashed transparent',
+            transition: 'all 0.2s',
+            '&:hover': {
+              borderColor: 'primary.light',
+            },
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.5, px: 1 }}>
+            Ungrouped Items
+          </Typography>
+          <DroppableGroup id="ungrouped">
+            <SortableContext items={ungroupedItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
               <List dense sx={{ py: 0 }}>
                 {ungroupedItems.length === 0 ? (
                   <ListItem
@@ -605,10 +609,10 @@ export const ListDetailPage = () => {
                   ))
                 )}
               </List>
-            </DroppableGroup>
-          </Paper>
-        </>
-      </SortableContext>
+            </SortableContext>
+          </DroppableGroup>
+        </Paper>
+      </>
     );
   };
 
