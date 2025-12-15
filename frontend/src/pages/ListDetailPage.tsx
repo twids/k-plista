@@ -29,6 +29,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import ShareIcon from '@mui/icons-material/Share';
 import FolderIcon from '@mui/icons-material/Folder';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {
   DndContext,
   DragOverlay,
@@ -58,6 +60,7 @@ import { useSignalR } from '../hooks/useSignalR';
 import signalRService from '../services/signalRService';
 import { useCountdownDelete } from '../hooks/useCountdownDelete';
 import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
+import { useGroupCollapse } from '../hooks/useGroupCollapse';
 
 // Sortable Item Component
 interface SortableItemProps {
@@ -184,6 +187,9 @@ export const ListDetailPage = () => {
   const [editingGroup, setEditingGroup] = useState<ItemGroup | undefined>(undefined);
   const [prefillGroupId, setPrefillGroupId] = useState<string | undefined>(undefined);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Group collapse state management
+  const { isGroupCollapsed, toggleGroupCollapse } = useGroupCollapse(listId);
 
   // Configure sensors for drag and drop
   const sensors = useSensors(
@@ -460,6 +466,18 @@ export const ListDetailPage = () => {
               }}
             >
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, px: 1 }}>
+                <IconButton
+                  size="small"
+                  aria-label={isGroupCollapsed(group.id) ? `expand-group-${group.name}` : `collapse-group-${group.name}`}
+                  onClick={() => toggleGroupCollapse(group.id)}
+                  sx={{ p: 0.5 }}
+                >
+                  {isGroupCollapsed(group.id) ? (
+                    <ChevronRightIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreIcon fontSize="small" />
+                  )}
+                </IconButton>
                 {group.icon ? (
                   <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
                 ) : (
@@ -498,34 +516,36 @@ export const ListDetailPage = () => {
                   <AddIcon fontSize="small" />
                 </IconButton>
               </Stack>
-              <DroppableGroup id={group.id}>
-                <List dense sx={{ py: 0 }}>
-                  {groupItems.length === 0 ? (
-                    <ListItem
-                      sx={{
-                        py: 2,
-                        justifyContent: 'center',
-                        color: 'text.secondary',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      <Typography variant="body2">
-                        Drop items here or click + to add
-                      </Typography>
-                    </ListItem>
-                  ) : (
-                    groupItems.map(item => (
-                      <SortableItem
-                        key={item.id}
-                        item={item}
-                        onToggleBought={handleToggleBought}
-                        onEdit={handleEditItem}
-                        onDelete={handleDeleteItem}
-                      />
-                    ))
-                  )}
-                </List>
-              </DroppableGroup>
+              {!isGroupCollapsed(group.id) && (
+                <DroppableGroup id={group.id}>
+                  <List dense sx={{ py: 0 }}>
+                    {groupItems.length === 0 ? (
+                      <ListItem
+                        sx={{
+                          py: 2,
+                          justifyContent: 'center',
+                          color: 'text.secondary',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        <Typography variant="body2">
+                          Drop items here or click + to add
+                        </Typography>
+                      </ListItem>
+                    ) : (
+                      groupItems.map(item => (
+                        <SortableItem
+                          key={item.id}
+                          item={item}
+                          onToggleBought={handleToggleBought}
+                          onEdit={handleEditItem}
+                          onDelete={handleDeleteItem}
+                        />
+                      ))
+                    )}
+                  </List>
+                </DroppableGroup>
+              )}
             </Paper>
           ))}
           <Paper
