@@ -672,6 +672,7 @@ export const ListDetailPage = () => {
           open={openItemDialog}
           groups={groups}
           editItem={editingItem}
+          prefillGroupId={prefillGroupId}
           onClose={() => {
             setOpenItemDialog(false);
             setEditingItem(undefined);
