@@ -469,7 +469,6 @@ export const ListDetailPage = () => {
                     setEditingGroup(group);
                     setOpenGroupDialog(true);
                   }}
-                  sx={{ ml: 'auto' }}
                 >
                   <EditIcon fontSize="small" />
                 </IconButton>
