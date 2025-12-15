@@ -516,8 +516,21 @@ export const ListDetailPage = () => {
                   <AddIcon fontSize="small" />
                 </IconButton>
               </Stack>
-              {!isGroupCollapsed(group.id) && (
-                <DroppableGroup id={group.id}>
+              <DroppableGroup id={group.id}>
+                {isGroupCollapsed(group.id) ? (
+                  <Box
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      textAlign: 'center',
+                      color: 'text.secondary',
+                      fontStyle: 'italic',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    Drop items here to add to group
+                  </Box>
+                ) : (
                   <List dense sx={{ py: 0 }}>
                     {groupItems.length === 0 ? (
                       <ListItem
@@ -544,8 +557,8 @@ export const ListDetailPage = () => {
                       ))
                     )}
                   </List>
-                </DroppableGroup>
-              )}
+                )}
+              </DroppableGroup>
             </Paper>
           ))}
           <Paper
