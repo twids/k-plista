@@ -31,6 +31,14 @@ export const AddItemDialog = ({ open, groups, editItem, onClose, onAdd, onEdit, 
   const [groupId, setGroupId] = useState('');
   const [showNewGroupDialog, setShowNewGroupDialog] = useState(false);
 
+  // Helper function to reset form
+  const resetForm = () => {
+    setName('');
+    setQuantity(1);
+    setUnit('');
+    setGroupId('');
+  };
+
   // Pre-populate form when editing
   useEffect(() => {
     if (editItem && open) {
@@ -40,10 +48,7 @@ export const AddItemDialog = ({ open, groups, editItem, onClose, onAdd, onEdit, 
       setGroupId(editItem.groupId || '');
     } else if (!editItem && open) {
       // Reset form when opening in add mode
-      setName('');
-      setQuantity(1);
-      setUnit('');
-      setGroupId('');
+      resetForm();
     }
   }, [editItem, open]);
 
@@ -63,10 +68,7 @@ export const AddItemDialog = ({ open, groups, editItem, onClose, onAdd, onEdit, 
       } else {
         onAdd(name, quantity, unit || undefined, groupId || undefined);
       }
-      setName('');
-      setQuantity(1);
-      setUnit('');
-      setGroupId('');
+      resetForm();
     }
   };
 

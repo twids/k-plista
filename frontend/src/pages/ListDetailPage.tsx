@@ -285,7 +285,6 @@ export const ListDetailPage = () => {
     try {
       await groceryItemService.create(listId, { name, quantity, unit, groupId });
       setOpenItemDialog(false);
-      setEditingItem(undefined);
       setPrefillGroupId(undefined);
     } catch (error) {
       console.error('Failed to add item:', error);
