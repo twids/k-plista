@@ -121,7 +121,7 @@ const SortableItem = ({ item, onToggleBought, onEdit, onDelete }: SortableItemPr
       <ListItemSecondaryAction>
         <IconButton
           edge="end"
-          aria-label="edit"
+          aria-label={`edit ${item.name}`}
           size="small"
           onClick={() => onEdit(item)}
           sx={{ mr: 1 }}
