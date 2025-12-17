@@ -137,7 +137,7 @@ export const ListsPage = () => {
                   <Box display="flex" justifyContent="space-between" alignItems="start">
                     <Box flex={1}>
                       <Typography variant="h6" gutterBottom sx={{ mb: 0.5 }}>
-                        {list.name} 
+                        {list.name}
                         <Chip
                           size="small"
                           label={`${list.boughtItemCount}/${list.itemCount} bought`}
