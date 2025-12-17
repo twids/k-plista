@@ -25,24 +25,28 @@ public class OAuthTicketHandler
     public OAuthTicketHandler(ILogger<OAuthTicketHandler> logger, IConfiguration configuration)
     {
         _logger = logger;
-        // If OAuthRedirectOrigins is configured, use it; otherwise empty array signals fallback to request origin
+        // OAuthRedirectOrigins must be configured in appsettings
         var configuredOrigins = configuration.GetSection("OAuthRedirectOrigins").Get<string[]>();
+        if (configuredOrigins == null || configuredOrigins.Length == 0)
+        {
+            _logger.LogWarning("OAuthRedirectOrigins is not configured in settings. OAuth redirects will fail.");
+        }
         _allowedRedirectOrigins = configuredOrigins ?? Array.Empty<string>();
     }
 
     /// <summary>
     /// Determines the redirect origin to use.
-    /// Uses whitelist if configured, otherwise falls back to request origin for backwards compatibility.
+    /// Requires OAuthRedirectOrigins to be configured in appsettings.
     /// </summary>
     private string GetRedirectOrigin(TicketReceivedContext context)
     {
-        if (_allowedRedirectOrigins.Length > 0)
+        if (_allowedRedirectOrigins.Length == 0)
         {
-            return _allowedRedirectOrigins[0];
+            _logger.LogError("OAuthRedirectOrigins is not configured. Redirecting to root.");
+            return "";
         }
 
-        // Fallback: construct from request (production backwards compatibility)
-        return $"{context.Request.Scheme}://{context.Request.Host}";
+        return _allowedRedirectOrigins[0];
     }
 
     /// <summary>
