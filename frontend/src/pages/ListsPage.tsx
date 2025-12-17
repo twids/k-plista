@@ -137,25 +137,23 @@ export const ListsPage = () => {
                   <Box display="flex" justifyContent="space-between" alignItems="start">
                     <Box flex={1}>
                       <Typography variant="h6" gutterBottom sx={{ mb: 0.5 }}>
-                        {list.name}
+                        {list.name} 
+                        <Chip
+                          size="small"
+                          label={`${list.boughtItemCount}/${list.itemCount} bought`}
+                          color={list.itemCount === 0 ? 'default' : 
+                                list.boughtItemCount === list.itemCount ? 'success' : 'primary'}
+                          sx={{ ml: 2, mr: 1 }}
+                        />
+                        {list.isShared && (
+                          <Chip size="small" icon={<ShareIcon />} label="Shared" />
+                        )}
                       </Typography>
                       {list.description && (
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                           {list.description}
                         </Typography>
                       )}
-                      <Box mt={1}>
-                        <Chip
-                          size="small"
-                          label={`${list.boughtItemCount}/${list.itemCount} bought`}
-                          color={list.itemCount === 0 ? 'default' : 
-                                list.boughtItemCount === list.itemCount ? 'success' : 'primary'}
-                          sx={{ mr: 1 }}
-                        />
-                        {list.isShared && (
-                          <Chip size="small" icon={<ShareIcon />} label="Shared" />
-                        )}
-                      </Box>
                     </Box>
                   </Box>
                 </CardContent>

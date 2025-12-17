@@ -45,10 +45,14 @@ public class OAuthTicketHandler
         var externalUserId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var pictureUrl = context.Principal?.FindFirst("picture")?.Value;
 
+        // Build absolute frontend base URL from the incoming request host (works with Vite proxy on 5173
+        // and when hitting the API directly on 5157).
+        var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
+
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
             _logger.LogWarning("{Provider}: Missing required claims for OAuth ticket", provider);
-            context.Response.Redirect($"/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{baseUrl}/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
             return;
         }
@@ -80,25 +84,25 @@ public class OAuthTicketHandler
                 }
             );
             
-            context.Response.Redirect("/?login_success=true");
+            context.Response.Redirect($"{baseUrl}/?login_success=true");
             context.HandleResponse();
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "{Provider}: Invalid operation during authentication", provider);
-            context.Response.Redirect($"/?error=email_exists&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{baseUrl}/?error=email_exists&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "{Provider}: Database error after {MaxRetries} retry attempts during user provisioning", provider, MaxRetries);
-            context.Response.Redirect($"/?error=database_error&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{baseUrl}/?error=database_error&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "{Provider}: Unexpected error during OAuth ticket reception", provider);
-            context.Response.Redirect($"/?error=authentication_error&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{baseUrl}/?error=authentication_error&provider={Uri.EscapeDataString(provider)}");
             context.HandleResponse();
         }
     }
