@@ -18,12 +18,31 @@ namespace KPlista.Api.Services;
 public class OAuthTicketHandler
 {
     private readonly ILogger<OAuthTicketHandler> _logger;
+    private readonly string[] _allowedRedirectOrigins;
     private const int MaxRetries = 3;
     private const int InitialDelayMs = 100;
 
-    public OAuthTicketHandler(ILogger<OAuthTicketHandler> logger)
+    public OAuthTicketHandler(ILogger<OAuthTicketHandler> logger, IConfiguration configuration)
     {
         _logger = logger;
+        // If OAuthRedirectOrigins is configured, use it; otherwise empty array signals fallback to request origin
+        var configuredOrigins = configuration.GetSection("OAuthRedirectOrigins").Get<string[]>();
+        _allowedRedirectOrigins = configuredOrigins ?? Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Determines the redirect origin to use.
+    /// Uses whitelist if configured, otherwise falls back to request origin for backwards compatibility.
+    /// </summary>
+    private string GetRedirectOrigin(TicketReceivedContext context)
+    {
+        if (_allowedRedirectOrigins.Length > 0)
+        {
+            return _allowedRedirectOrigins[0];
+        }
+
+        // Fallback: construct from request (production backwards compatibility)
+        return $"{context.Request.Scheme}://{context.Request.Host}";
     }
 
     /// <summary>
@@ -35,7 +54,7 @@ public class OAuthTicketHandler
         if (context.Principal == null)
         {
             _logger.LogWarning("{Provider}: Missing principal on OAuth ticket", provider);
-            context.Response.Redirect($"/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=invalid_user_data");
             context.HandleResponse();
             return;
         }
@@ -45,14 +64,10 @@ public class OAuthTicketHandler
         var externalUserId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var pictureUrl = context.Principal?.FindFirst("picture")?.Value;
 
-        // Build absolute frontend base URL from the incoming request host (works with Vite proxy on 5173
-        // and when hitting the API directly on 5157).
-        var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
-
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
             _logger.LogWarning("{Provider}: Missing required claims for OAuth ticket", provider);
-            context.Response.Redirect($"{baseUrl}/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=invalid_user_data");
             context.HandleResponse();
             return;
         }
@@ -84,25 +99,41 @@ public class OAuthTicketHandler
                 }
             );
             
+<<<<<<< Updated upstream
             context.Response.Redirect($"{baseUrl}/?login_success=true");
+=======
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?login_success=true");
+>>>>>>> Stashed changes
             context.HandleResponse();
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "{Provider}: Invalid operation during authentication", provider);
+<<<<<<< Updated upstream
             context.Response.Redirect($"{baseUrl}/?error=email_exists&provider={Uri.EscapeDataString(provider)}");
+=======
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=email_exists");
+>>>>>>> Stashed changes
             context.HandleResponse();
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "{Provider}: Database error after {MaxRetries} retry attempts during user provisioning", provider, MaxRetries);
+<<<<<<< Updated upstream
             context.Response.Redirect($"{baseUrl}/?error=database_error&provider={Uri.EscapeDataString(provider)}");
+=======
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=database_error");
+>>>>>>> Stashed changes
             context.HandleResponse();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "{Provider}: Unexpected error during OAuth ticket reception", provider);
+<<<<<<< Updated upstream
             context.Response.Redirect($"{baseUrl}/?error=authentication_error&provider={Uri.EscapeDataString(provider)}");
+=======
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=authentication_error");
+>>>>>>> Stashed changes
             context.HandleResponse();
         }
     }

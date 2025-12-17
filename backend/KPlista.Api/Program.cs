@@ -29,7 +29,7 @@ builder.WebHost.UseKestrel(options =>
 // Add services to the container.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IExternalUserService, ExternalUserService>();
-builder.Services.AddScoped<OAuthTicketHandler>();
+builder.Services.AddSingleton<OAuthTicketHandler>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
