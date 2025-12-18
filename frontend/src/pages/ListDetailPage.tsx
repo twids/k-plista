@@ -230,7 +230,7 @@ const GroupHeader = ({
           Drop items here
         </Box>
       )}
-      <Box sx={{ flexGrow: activeId ? 0 : 1 }} />
+      {!activeId && <Box sx={{ flexGrow: 1 }} />}
       <IconButton
         size="small"
         aria-label={`edit-group-${group.name}`}

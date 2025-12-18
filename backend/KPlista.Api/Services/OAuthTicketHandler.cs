@@ -48,26 +48,25 @@ public class OAuthTicketHandler
         }
 
         // Try to match the request origin header to avoid cross-origin issues
-        var requestOrigin = context.Request.Headers["Origin"].FirstOrDefault() 
-                            ?? context.Request.Headers["Referer"].FirstOrDefault();
+        // Only use Origin header for security (Referer can be spoofed)
+        var requestOrigin = context.Request.Headers["Origin"].FirstOrDefault();
         
         if (!string.IsNullOrEmpty(requestOrigin))
         {
-            // Extract origin from referer if it's a full URL
-            if (requestOrigin.StartsWith("http"))
+            // Validate and parse the origin URL
+            if (Uri.TryCreate(requestOrigin, UriKind.Absolute, out var uri))
             {
-                var uri = new Uri(requestOrigin);
-                requestOrigin = $"{uri.Scheme}://{uri.Authority}";
-            }
-            
-            // Check if this origin is in our allowed list
-            var matchedOrigin = _allowedRedirectOrigins.FirstOrDefault(
-                allowed => allowed.Equals(requestOrigin, StringComparison.OrdinalIgnoreCase)
-            );
-            
-            if (matchedOrigin != null)
-            {
-                return matchedOrigin;
+                var normalizedOrigin = $"{uri.Scheme}://{uri.Authority}";
+                
+                // Check if this origin is in our allowed list
+                var matchedOrigin = _allowedRedirectOrigins.FirstOrDefault(
+                    allowed => allowed.Equals(normalizedOrigin, StringComparison.OrdinalIgnoreCase)
+                );
+                
+                if (matchedOrigin != null)
+                {
+                    return matchedOrigin;
+                }
             }
         }
 
