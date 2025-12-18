@@ -35,7 +35,8 @@ public class OAuthTicketHandler
     }
 
     /// <summary>
-    /// Determines the redirect origin to use.
+    /// Determines the redirect origin to use by matching the request's origin header
+    /// against allowed origins. Falls back to the first configured origin if no match is found.
     /// Requires OAuthRedirectOrigins to be configured in appsettings.
     /// </summary>
     private string GetRedirectOrigin(TicketReceivedContext context)
@@ -46,6 +47,31 @@ public class OAuthTicketHandler
             return "";
         }
 
+        // Try to match the request origin header to avoid cross-origin issues
+        var requestOrigin = context.Request.Headers["Origin"].FirstOrDefault() 
+                            ?? context.Request.Headers["Referer"].FirstOrDefault();
+        
+        if (!string.IsNullOrEmpty(requestOrigin))
+        {
+            // Extract origin from referer if it's a full URL
+            if (requestOrigin.StartsWith("http"))
+            {
+                var uri = new Uri(requestOrigin);
+                requestOrigin = $"{uri.Scheme}://{uri.Authority}";
+            }
+            
+            // Check if this origin is in our allowed list
+            var matchedOrigin = _allowedRedirectOrigins.FirstOrDefault(
+                allowed => allowed.Equals(requestOrigin, StringComparison.OrdinalIgnoreCase)
+            );
+            
+            if (matchedOrigin != null)
+            {
+                return matchedOrigin;
+            }
+        }
+
+        // Fall back to first configured origin
         return _allowedRedirectOrigins[0];
     }
 
@@ -103,41 +129,25 @@ public class OAuthTicketHandler
                 }
             );
             
-<<<<<<< Updated upstream
-            context.Response.Redirect($"{baseUrl}/?login_success=true");
-=======
             context.Response.Redirect($"{GetRedirectOrigin(context)}/?login_success=true");
->>>>>>> Stashed changes
             context.HandleResponse();
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "{Provider}: Invalid operation during authentication", provider);
-<<<<<<< Updated upstream
-            context.Response.Redirect($"{baseUrl}/?error=email_exists&provider={Uri.EscapeDataString(provider)}");
-=======
             context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=email_exists");
->>>>>>> Stashed changes
             context.HandleResponse();
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "{Provider}: Database error after {MaxRetries} retry attempts during user provisioning", provider, MaxRetries);
-<<<<<<< Updated upstream
-            context.Response.Redirect($"{baseUrl}/?error=database_error&provider={Uri.EscapeDataString(provider)}");
-=======
             context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=database_error");
->>>>>>> Stashed changes
             context.HandleResponse();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "{Provider}: Unexpected error during OAuth ticket reception", provider);
-<<<<<<< Updated upstream
-            context.Response.Redirect($"{baseUrl}/?error=authentication_error&provider={Uri.EscapeDataString(provider)}");
-=======
             context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=authentication_error");
->>>>>>> Stashed changes
             context.HandleResponse();
         }
     }
