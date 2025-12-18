@@ -502,7 +502,6 @@ export const ListDetailPage = () => {
                         Drop items here
                       </Box>
                     )}
-                    <Box sx={{ flexGrow: 1 }} />
                     <IconButton
                       size="small"
                       aria-label={`edit-group-${group.name}`}
