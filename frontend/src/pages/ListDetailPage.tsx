@@ -215,22 +215,22 @@ const GroupHeader = ({
       )}
       <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
       <Chip size="small" label={groupItemsCount} />
+      <Box sx={{ flexGrow: 1 }} />
       {activeId && (
         <Box
           role="region"
           aria-label={`Drop zone for ${group.name} group`}
           sx={{
-            ml: 'auto',
             color: 'text.secondary',
             fontStyle: 'italic',
             fontSize: '0.75rem',
             whiteSpace: 'nowrap',
+            mr: 1,
           }}
         >
           Drop items here
         </Box>
       )}
-      {!activeId && <Box sx={{ flexGrow: 1 }} />}
       <IconButton
         size="small"
         aria-label={`edit-group-${group.name}`}
