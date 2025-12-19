@@ -172,6 +172,91 @@ const DroppableGroup = ({ id, children }: DroppableGroupProps) => {
   );
 };
 
+// Group Header Component
+interface GroupHeaderProps {
+  group: ItemGroup;
+  groupItemsCount: number;
+  isCollapsed: boolean;
+  activeId: string | null;
+  onToggleCollapse: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddItem: () => void;
+}
+
+const GroupHeader = ({
+  group,
+  groupItemsCount,
+  isCollapsed,
+  activeId,
+  onToggleCollapse,
+  onEdit,
+  onDelete,
+  onAddItem,
+}: GroupHeaderProps) => {
+  return (
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1 }}>
+      <IconButton
+        size="small"
+        aria-label={isCollapsed ? `Expand ${group.name} group` : `Collapse ${group.name} group`}
+        onClick={onToggleCollapse}
+        sx={{ p: 0.5 }}
+      >
+        {isCollapsed ? (
+          <ChevronRightIcon fontSize="small" />
+        ) : (
+          <ExpandMoreIcon fontSize="small" />
+        )}
+      </IconButton>
+      {group.icon ? (
+        <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
+      ) : (
+        <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
+      )}
+      <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
+      <Chip size="small" label={groupItemsCount} />
+      <Box sx={{ flexGrow: 1 }} />
+      {activeId && (
+        <Box
+          role="region"
+          aria-label={`Drop zone for ${group.name} group`}
+          sx={{
+            color: 'text.secondary',
+            fontStyle: 'italic',
+            fontSize: '0.75rem',
+            whiteSpace: 'nowrap',
+            mr: 1,
+          }}
+        >
+          Drop items here
+        </Box>
+      )}
+      <IconButton
+        size="small"
+        aria-label={`edit-group-${group.name}`}
+        onClick={onEdit}
+      >
+        <EditIcon fontSize="small" />
+      </IconButton>
+      <IconButton
+        size="small"
+        aria-label={`delete-group-${group.name}`}
+        onClick={onDelete}
+      >
+        <DeleteIcon fontSize="small" />
+      </IconButton>
+      <IconButton
+        size="small"
+        aria-label={`add-item-to-group-${group.name}`}
+        onClick={onAddItem}
+        sx={{ ml: 1 }}
+      >
+        <AddIcon fontSize="small" />
+      </IconButton>
+    </Stack>
+  );
+};
+
 export const ListDetailPage = () => {
   const { listId } = useParams<{ listId: string }>();
   const navigate = useNavigate();
@@ -196,8 +281,8 @@ export const ListDetailPage = () => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8, // 8px movement required before drag starts
-        // No delay for mouse/pointer to keep desktop experience snappy
-        // Touch devices will still work fine with just distance constraint
+        delay: 150, // Small delay helps distinguish drag from scroll on touch devices
+        tolerance: 5, // Tolerance to allow minor movements during the delay
       },
     }),
     useSensor(KeyboardSensor, {
@@ -467,139 +552,44 @@ export const ListDetailPage = () => {
             >
               <DroppableGroup id={group.id}>
                 {isGroupCollapsed(group.id) ? (
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1 }}>
-                    <IconButton
-                      size="small"
-                      aria-label={isGroupCollapsed(group.id) ? `Expand ${group.name} group` : `Collapse ${group.name} group`}
-                      onClick={() => toggleGroupCollapse(group.id)}
-                      sx={{ p: 0.5 }}
-                    >
-                      {isGroupCollapsed(group.id) ? (
-                        <ChevronRightIcon fontSize="small" />
-                      ) : (
-                        <ExpandMoreIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                    {group.icon ? (
-                      <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
-                    ) : (
-                      <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
-                    )}
-                    <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
-                    <Chip size="small" label={groupItems.length} />
-                    <Box sx={{ flexGrow: 1 }} />
-                    {activeId && (
-                      <Box
-                        role="region"
-                        aria-label={`Drop zone for ${group.name} group`}
-                        sx={{
-                          color: 'text.secondary',
-                          fontStyle: 'italic',
-                          fontSize: '0.75rem',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Drop items here
-                      </Box>
-                    )}
-                    <IconButton
-                      size="small"
-                      aria-label={`edit-group-${group.name}`}
-                      onClick={() => {
-                        setEditingGroup(group);
-                        setOpenGroupDialog(true);
-                      }}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      aria-label={`delete-group-${group.name}`}
-                      onClick={() => handleDeleteGroup(group.id, group.name)}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      aria-label={`add-item-to-group-${group.name}`}
-                      onClick={() => {
-                        setEditingItem(undefined);
-                        setPrefillGroupId(group.id);
-                        setOpenItemDialog(true);
-                      }}
-                      sx={{ ml: 1 }}
-                    >
-                      <AddIcon fontSize="small" />
-                    </IconButton>
-                  </Stack>
+                  <GroupHeader
+                    group={group}
+                    groupItemsCount={groupItems.length}
+                    isCollapsed={true}
+                    activeId={activeId}
+                    onToggleCollapse={() => toggleGroupCollapse(group.id)}
+                    onEdit={() => {
+                      setEditingGroup(group);
+                      setOpenGroupDialog(true);
+                    }}
+                    onDelete={() => handleDeleteGroup(group.id, group.name)}
+                    onAddItem={() => {
+                      setEditingItem(undefined);
+                      setPrefillGroupId(group.id);
+                      setOpenItemDialog(true);
+                    }}
+                  />
                 ) : (
                   <>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, px: 1 }}>
-                      <IconButton
-                        size="small"
-                        aria-label={isGroupCollapsed(group.id) ? `Expand ${group.name} group` : `Collapse ${group.name} group`}
-                        onClick={() => toggleGroupCollapse(group.id)}
-                        sx={{ p: 0.5 }}
-                      >
-                        {isGroupCollapsed(group.id) ? (
-                          <ChevronRightIcon fontSize="small" />
-                        ) : (
-                          <ExpandMoreIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                      {group.icon ? (
-                        <Box sx={{ fontSize: '1.5rem' }}>{group.icon}</Box>
-                      ) : (
-                        <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
-                      )}
-                      <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
-                      <Chip size="small" label={groupItems.length} />
-                      <Box sx={{ flexGrow: 1 }} />
-                      {activeId && (
-                        <Box
-                          role="region"
-                          aria-label={`Drop zone for ${group.name} group`}
-                          sx={{
-                            color: 'text.secondary',
-                            fontStyle: 'italic',
-                            fontSize: '0.75rem',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          Drop items here
-                        </Box>
-                      )}
-                      <Box sx={{ flexGrow: 1 }} />
-                      <IconButton
-                        size="small"
-                        aria-label={`edit-group-${group.name}`}
-                        onClick={() => {
+                    <Box sx={{ mb: 0.5 }}>
+                      <GroupHeader
+                        group={group}
+                        groupItemsCount={groupItems.length}
+                        isCollapsed={false}
+                        activeId={activeId}
+                        onToggleCollapse={() => toggleGroupCollapse(group.id)}
+                        onEdit={() => {
                           setEditingGroup(group);
                           setOpenGroupDialog(true);
                         }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        aria-label={`delete-group-${group.name}`}
-                        onClick={() => handleDeleteGroup(group.id, group.name)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        aria-label={`add-item-to-group-${group.name}`}
-                        onClick={() => {
+                        onDelete={() => handleDeleteGroup(group.id, group.name)}
+                        onAddItem={() => {
                           setEditingItem(undefined);
                           setPrefillGroupId(group.id);
                           setOpenItemDialog(true);
                         }}
-                        sx={{ ml: 1 }}
-                      >
-                        <AddIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
+                      />
+                    </Box>
                     <SortableContext items={groupItemIds} strategy={verticalListSortingStrategy}>
                       <List dense sx={{ py: 0 }}>
                         {groupItems.length === 0 ? (
