@@ -18,12 +18,60 @@ namespace KPlista.Api.Services;
 public class OAuthTicketHandler
 {
     private readonly ILogger<OAuthTicketHandler> _logger;
+    private readonly string[] _allowedRedirectOrigins;
     private const int MaxRetries = 3;
     private const int InitialDelayMs = 100;
 
-    public OAuthTicketHandler(ILogger<OAuthTicketHandler> logger)
+    public OAuthTicketHandler(ILogger<OAuthTicketHandler> logger, IConfiguration configuration)
     {
         _logger = logger;
+        // OAuthRedirectOrigins must be configured in appsettings
+        var configuredOrigins = configuration.GetSection("OAuthRedirectOrigins").Get<string[]>();
+        if (configuredOrigins == null || configuredOrigins.Length == 0)
+        {
+            _logger.LogWarning("OAuthRedirectOrigins is not configured in settings. OAuth redirects will fail.");
+        }
+        _allowedRedirectOrigins = configuredOrigins ?? Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Determines the redirect origin to use by matching the request's origin header
+    /// against allowed origins. Falls back to the first configured origin if no match is found.
+    /// Requires OAuthRedirectOrigins to be configured in appsettings.
+    /// </summary>
+    private string GetRedirectOrigin(TicketReceivedContext context)
+    {
+        if (_allowedRedirectOrigins.Length == 0)
+        {
+            _logger.LogError("OAuthRedirectOrigins is not configured. Redirecting to root.");
+            return "";
+        }
+
+        // Try to match the request origin header to avoid cross-origin issues
+        // Only use Origin header for security (Referer can be spoofed)
+        var requestOrigin = context.Request.Headers["Origin"].FirstOrDefault();
+        
+        if (!string.IsNullOrEmpty(requestOrigin))
+        {
+            // Validate and parse the origin URL
+            if (Uri.TryCreate(requestOrigin, UriKind.Absolute, out var uri))
+            {
+                var normalizedOrigin = $"{uri.Scheme}://{uri.Authority}";
+                
+                // Check if this origin is in our allowed list
+                var matchedOrigin = _allowedRedirectOrigins.FirstOrDefault(
+                    allowed => allowed.Equals(normalizedOrigin, StringComparison.OrdinalIgnoreCase)
+                );
+                
+                if (matchedOrigin != null)
+                {
+                    return matchedOrigin;
+                }
+            }
+        }
+
+        // Fall back to first configured origin
+        return _allowedRedirectOrigins[0];
     }
 
     /// <summary>
@@ -35,7 +83,7 @@ public class OAuthTicketHandler
         if (context.Principal == null)
         {
             _logger.LogWarning("{Provider}: Missing principal on OAuth ticket", provider);
-            context.Response.Redirect($"/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=invalid_user_data");
             context.HandleResponse();
             return;
         }
@@ -48,7 +96,7 @@ public class OAuthTicketHandler
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(externalUserId))
         {
             _logger.LogWarning("{Provider}: Missing required claims for OAuth ticket", provider);
-            context.Response.Redirect($"/?error=invalid_user_data&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=invalid_user_data");
             context.HandleResponse();
             return;
         }
@@ -80,25 +128,25 @@ public class OAuthTicketHandler
                 }
             );
             
-            context.Response.Redirect("/?login_success=true");
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?login_success=true");
             context.HandleResponse();
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "{Provider}: Invalid operation during authentication", provider);
-            context.Response.Redirect($"/?error=email_exists&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=email_exists");
             context.HandleResponse();
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "{Provider}: Database error after {MaxRetries} retry attempts during user provisioning", provider, MaxRetries);
-            context.Response.Redirect($"/?error=database_error&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=database_error");
             context.HandleResponse();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "{Provider}: Unexpected error during OAuth ticket reception", provider);
-            context.Response.Redirect($"/?error=authentication_error&provider={Uri.EscapeDataString(provider)}");
+            context.Response.Redirect($"{GetRedirectOrigin(context)}/?error=authentication_error");
             context.HandleResponse();
         }
     }
