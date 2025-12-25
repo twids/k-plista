@@ -53,7 +53,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
     }
   };
 
-  const { countdownState, initiateDelete, cancelDelete } = useCountdownDelete(handleRemoveShareAction);
+  const { deletingItems, initiateDelete, cancelDelete } = useCountdownDelete(handleRemoveShareAction);
 
   const loadShares = useCallback(async () => {
     try {
@@ -253,9 +253,7 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
       </DialogActions>
 
       <CountdownDeleteSnackbar
-        open={countdownState.isCountingDown}
-        message={countdownState.message}
-        countdown={countdownState.countdown}
+        deletingItems={deletingItems}
         onCancel={cancelDelete}
       />
 

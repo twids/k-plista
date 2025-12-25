@@ -13,6 +13,11 @@ export interface LoginResponse {
   token: string;
 }
 
+export interface CountdownDeleteItem {
+  itemId: string;
+  countdown: number;
+  message: string;
+}
 
 export interface GroceryList {
   id: string;
