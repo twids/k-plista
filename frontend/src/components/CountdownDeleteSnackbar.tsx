@@ -1,10 +1,5 @@
 import { Alert, Button, Box, Typography, Stack } from '@mui/material';
-
-interface CountdownDeleteItem {
-  itemId: string;
-  message: string;
-  countdown: number;
-}
+import type { CountdownDeleteItem } from '../types';
 
 interface CountdownDeleteSnackbarProps {
   deletingItems: CountdownDeleteItem[];

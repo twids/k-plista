@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-
-interface CountdownDeleteItem {
-  itemId: string;
-  countdown: number;
-  message: string;
-}
+import type { CountdownDeleteItem } from '../types';
 
 interface UseCountdownDeleteReturn {
   deletingItems: CountdownDeleteItem[];
