@@ -47,7 +47,7 @@ export const ListsPage = () => {
     }
   };
 
-  const { countdownState, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteListAction);
+  const { deletingItems, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteListAction);
 
   useEffect(() => {
     loadLists();
@@ -197,9 +197,7 @@ export const ListsPage = () => {
       />
 
       <CountdownDeleteSnackbar
-        open={countdownState.isCountingDown}
-        message={countdownState.message}
-        countdown={countdownState.countdown}
+        deletingItems={deletingItems}
         onCancel={cancelDelete}
       />
     </Box>

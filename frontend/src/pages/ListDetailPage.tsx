@@ -309,9 +309,9 @@ export const ListDetailPage = () => {
     }
   };
 
-  const { countdownState, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteItemAction);
+  const { deletingItems, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteItemAction);
   const { 
-    countdownState: groupCountdownState, 
+    deletingItems: deletingGroups, 
     initiateDelete: initiateGroupDelete, 
     cancelDelete: cancelGroupDelete 
   } = useCountdownDelete(handleDeleteGroupAction);
@@ -813,16 +813,12 @@ export const ListDetailPage = () => {
         />
 
         <CountdownDeleteSnackbar
-          open={countdownState.isCountingDown}
-          message={countdownState.message}
-          countdown={countdownState.countdown}
+          deletingItems={deletingItems}
           onCancel={cancelDelete}
         />
 
         <CountdownDeleteSnackbar
-          open={groupCountdownState.isCountingDown}
-          message={groupCountdownState.message}
-          countdown={groupCountdownState.countdown}
+          deletingItems={deletingGroups}
           onCancel={cancelGroupDelete}
         />
       </Box>
