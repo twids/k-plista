@@ -1,0 +1,60 @@
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.EntityFrameworkCore;
+using KPlista.Api.Data;
+using KPlista.Api.Models;
+
+namespace KPlista.Api.Services;
+
+public interface IApiKeyService
+{
+    string GenerateApiKey();
+    string HashApiKey(string apiKey);
+    Task<ApiKey?> ValidateApiKeyAsync(string apiKey);
+}
+
+public class ApiKeyService : IApiKeyService
+{
+    private readonly KPlistaDbContext _context;
+
+    public ApiKeyService(KPlistaDbContext context)
+    {
+        _context = context;
+    }
+
+    public string GenerateApiKey()
+    {
+        // Generate a cryptographically secure random API key
+        var bytes = new byte[32];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(bytes);
+        }
+        return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
+    public string HashApiKey(string apiKey)
+    {
+        // Hash the API key using SHA256 for storage
+        using var sha256 = SHA256.Create();
+        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(apiKey));
+        return Convert.ToBase64String(hashBytes);
+    }
+
+    public async Task<ApiKey?> ValidateApiKeyAsync(string apiKey)
+    {
+        var hash = HashApiKey(apiKey);
+        var apiKeyEntity = await _context.ApiKeys
+            .Include(ak => ak.User)
+            .FirstOrDefaultAsync(ak => ak.KeyHash == hash);
+
+        if (apiKeyEntity != null)
+        {
+            // Update last used timestamp
+            apiKeyEntity.LastUsedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
+        return apiKeyEntity;
+    }
+}

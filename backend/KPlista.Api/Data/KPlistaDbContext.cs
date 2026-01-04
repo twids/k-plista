@@ -14,6 +14,7 @@ public class KPlistaDbContext : DbContext
     public DbSet<GroceryItem> GroceryItems { get; set; }
     public DbSet<ItemGroup> ItemGroups { get; set; }
     public DbSet<ListShare> ListShares { get; set; }
+    public DbSet<ApiKey> ApiKeys { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,6 +86,19 @@ public class KPlistaDbContext : DbContext
                 .HasForeignKey(e => e.SharedWithUserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.GroceryListId, e.SharedWithUserId }).IsUnique();
+        });
+
+        // ApiKey configuration
+        modelBuilder.Entity<ApiKey>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.KeyHash).IsRequired().HasMaxLength(256);
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.ApiKeys)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.KeyHash).IsUnique();
         });
     }
 }

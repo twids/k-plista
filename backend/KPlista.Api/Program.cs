@@ -29,6 +29,7 @@ builder.WebHost.UseKestrel(options =>
 // Add services to the container.
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IExternalUserService, ExternalUserService>();
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<OAuthTicketHandler>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -127,6 +128,10 @@ builder.Services.AddAuthentication(options =>
         }
     };
 })
+.AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+    ApiKeyAuthenticationOptions.DefaultScheme,
+    options => { }
+)
 .AddGoogle(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
