@@ -145,17 +145,17 @@ public class SettingsController : ControllerBase
         // Validate that the list exists and user has access to it
         if (dto.ListId.HasValue)
         {
-            var list = await _context.GroceryLists
-                .Include(gl => gl.Shares)
-                .FirstOrDefaultAsync(gl => gl.Id == dto.ListId.Value);
+            var list = await _context.GroceryLists.FindAsync(dto.ListId.Value);
 
             if (list == null)
             {
                 return BadRequest("List not found");
             }
 
-            var hasAccess = list.OwnerId == userId || 
-                          list.Shares.Any(s => s.SharedWithUserId == userId);
+            // Check if user owns the list or has a share with access
+            var hasAccess = list.OwnerId == userId ||
+                await _context.ListShares
+                    .AnyAsync(s => s.GroceryListId == dto.ListId.Value && s.SharedWithUserId == userId);
 
             if (!hasAccess)
             {

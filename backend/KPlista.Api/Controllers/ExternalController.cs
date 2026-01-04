@@ -63,17 +63,17 @@ public class ExternalController : ControllerBase
         }
 
         // Verify user has access to the list
-        var list = await _context.GroceryLists
-            .Include(gl => gl.Shares)
-            .FirstOrDefaultAsync(gl => gl.Id == targetListId);
+        var list = await _context.GroceryLists.FindAsync(targetListId);
 
         if (list == null)
         {
             return NotFound(new { error = "List not found" });
         }
 
-        var hasAccess = list.OwnerId == userId || 
-                       list.Shares.Any(s => s.SharedWithUserId == userId && s.CanEdit);
+        // Check if user owns the list or has edit permissions via share
+        var hasAccess = list.OwnerId == userId ||
+            await _context.ListShares
+                .AnyAsync(s => s.GroceryListId == targetListId && s.SharedWithUserId == userId && s.CanEdit);
 
         if (!hasAccess)
         {

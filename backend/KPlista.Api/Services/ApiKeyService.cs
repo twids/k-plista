@@ -26,10 +26,7 @@ public class ApiKeyService : IApiKeyService
     {
         // Generate a cryptographically secure random API key
         var bytes = new byte[32];
-        using (var rng = RandomNumberGenerator.Create())
-        {
-            rng.GetBytes(bytes);
-        }
+        RandomNumberGenerator.Fill(bytes);
         return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
