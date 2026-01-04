@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { ListsPage } from './pages/ListsPage';
 import { ListDetailPage } from './pages/ListDetailPage';
 import { AcceptSharePage } from './pages/AcceptSharePage';
+import { SettingsPage } from './pages/SettingsPage';
 
 const theme = createTheme({
   palette: {
@@ -58,6 +59,14 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <ListDetailPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <PrivateRoute>
+            <SettingsPage />
           </PrivateRoute>
         }
       />
