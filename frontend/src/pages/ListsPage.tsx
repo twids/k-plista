@@ -28,7 +28,6 @@ import { useAuth } from '../hooks/useAuth';
 import { CreateListDialog } from '../components/CreateListDialog';
 import { EditListDialog } from '../components/EditListDialog';
 import { useCountdownDelete } from '../hooks/useCountdownDelete';
-import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
 
 export const ListsPage = () => {
   const [lists, setLists] = useState<GroceryList[]>([]);
@@ -131,45 +130,71 @@ export const ListsPage = () => {
           </Box>
         ) : (
           <Stack spacing={1.5} sx={{ mt: 2 }}>
-            {lists.map((list) => (
-              <Card key={list.id} elevation={1}>
-                <CardContent sx={{ pb: 1, '&:last-child': { pb: 1.5 } }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="start">
-                    <Box flex={1}>
-                      <Typography variant="h6" gutterBottom sx={{ mb: 0.5 }}>
-                        {list.name}
-                        <Chip
-                          size="small"
-                          label={`${list.boughtItemCount}/${list.itemCount} bought`}
-                          color={list.itemCount === 0 ? 'default' : 
-                                list.boughtItemCount === list.itemCount ? 'success' : 'primary'}
-                          sx={{ ml: 2, mr: 1 }}
-                        />
-                        {list.isShared && (
-                          <Chip size="small" icon={<ShareIcon />} label="Shared" />
-                        )}
-                      </Typography>
-                      {list.description && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          {list.description}
+            {lists.map((list) => {
+              const deletingList = deletingItems.find(d => d.itemId === list.id);
+              const isDeleting = !!deletingList;
+              
+              return (
+                <Card key={list.id} elevation={1} sx={{ bgcolor: isDeleting ? 'warning.light' : 'background.paper' }}>
+                  <CardContent sx={{ pb: 1, '&:last-child': { pb: 1.5 } }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="start">
+                      <Box flex={1}>
+                        <Typography variant="h6" gutterBottom sx={{ mb: 0.5 }}>
+                          {list.name}
+                          <Chip
+                            size="small"
+                            label={`${list.boughtItemCount}/${list.itemCount} bought`}
+                            color={list.itemCount === 0 ? 'default' : 
+                                  list.boughtItemCount === list.itemCount ? 'success' : 'primary'}
+                            sx={{ ml: 2, mr: 1 }}
+                          />
+                          {list.isShared && (
+                            <Chip size="small" icon={<ShareIcon />} label="Shared" />
+                          )}
                         </Typography>
-                      )}
+                        {list.description && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            {list.description}
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
-                  </Box>
-                </CardContent>
-                <CardActions sx={{ pt: 0, pb: 1 }}>
-                  <Button size="small" onClick={() => navigate(`/lists/${list.id}`)}>
-                    Open
-                  </Button>
-                  <IconButton size="small" onClick={() => setEditingList(list)}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => handleDeleteList(list.id, list.name)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </CardActions>
-              </Card>
-            ))}
+                  </CardContent>
+                  <CardActions sx={{ pt: 0, pb: 1 }}>
+                    {isDeleting ? (
+                      <>
+                        <Chip
+                          label={`${deletingList.countdown}s`}
+                          size="small"
+                          color="warning"
+                          sx={{ mr: 1 }}
+                        />
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="warning"
+                          onClick={() => cancelDelete(list.id)}
+                        >
+                          Undo
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button size="small" onClick={() => navigate(`/lists/${list.id}`)}>
+                          Open
+                        </Button>
+                        <IconButton size="small" onClick={() => setEditingList(list)}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => handleDeleteList(list.id, list.name)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
+                    )}
+                  </CardActions>
+                </Card>
+              );
+            })}
           </Stack>
         )}
       </Container>
@@ -194,11 +219,6 @@ export const ListsPage = () => {
         list={editingList}
         onClose={() => setEditingList(null)}
         onUpdate={handleEditList}
-      />
-
-      <CountdownDeleteSnackbar
-        deletingItems={deletingItems}
-        onCancel={cancelDelete}
       />
     </Box>
   );

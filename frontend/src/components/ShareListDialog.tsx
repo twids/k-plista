@@ -18,6 +18,7 @@ import {
   InputAdornment,
   Snackbar,
   Alert,
+  Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -26,7 +27,6 @@ import { listShareService } from '../services/listShareService';
 import { groceryListService } from '../services/groceryListService';
 import type { ListShare } from '../types';
 import { useCountdownDelete } from '../hooks/useCountdownDelete';
-import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
 
 interface ShareListDialogProps {
   open: boolean;
@@ -218,25 +218,50 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
             </Typography>
           ) : (
             <List>
-              {shares.map((share) => (
-                <ListItem
-                  key={share.id}
-                  secondaryAction={
-                    <IconButton
-                      edge="end"
-                      aria-label="delete"
-                      onClick={() => handleRemoveShare(share.id, share.sharedWithUserName)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  }
-                >
-                  <ListItemText
-                    primary={share.sharedWithUserName}
-                    secondary={`${share.sharedWithUserEmail} • ${share.canEdit ? 'Can edit' : 'View only'}`}
-                  />
-                </ListItem>
-              ))}
+              {shares.map((share) => {
+                const deletingShare = deletingItems.find(d => d.itemId === share.id);
+                const isDeleting = !!deletingShare;
+                
+                return (
+                  <ListItem
+                    key={share.id}
+                    sx={{ bgcolor: isDeleting ? 'warning.light' : 'transparent' }}
+                    secondaryAction={
+                      isDeleting ? (
+                        <>
+                          <Chip
+                            label={`${deletingShare.countdown}s`}
+                            size="small"
+                            color="warning"
+                            sx={{ mr: 1 }}
+                          />
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="warning"
+                            onClick={() => cancelDelete(share.id)}
+                          >
+                            Undo
+                          </Button>
+                        </>
+                      ) : (
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          onClick={() => handleRemoveShare(share.id, share.sharedWithUserName)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      )
+                    }
+                  >
+                    <ListItemText
+                      primary={share.sharedWithUserName}
+                      secondary={`${share.sharedWithUserEmail} • ${share.canEdit ? 'Can edit' : 'View only'}`}
+                    />
+                  </ListItem>
+                );
+              })}
             </List>
           )}
         </Box>
@@ -251,11 +276,6 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
           Share
         </Button>
       </DialogActions>
-
-      <CountdownDeleteSnackbar
-        deletingItems={deletingItems}
-        onCancel={cancelDelete}
-      />
 
       <Snackbar
         open={showCopied}
