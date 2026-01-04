@@ -230,16 +230,18 @@ export const ShareListDialog = ({ open, listId, onClose }: ShareListDialogProps)
                       isDeleting ? (
                         <>
                           <Chip
-                            label={`${deletingShare.countdown}s`}
+                            label={`${deletingShare?.countdown ?? 0}s`}
                             size="small"
                             color="warning"
                             sx={{ mr: 1 }}
+                            aria-label={`Deletion countdown: ${deletingShare?.countdown ?? 0} seconds`}
                           />
                           <Button
                             size="small"
                             variant="contained"
                             color="warning"
                             onClick={() => cancelDelete(share.id)}
+                            aria-label={`Cancel share removal for ${share.sharedWithUserName}`}
                           >
                             Undo
                           </Button>

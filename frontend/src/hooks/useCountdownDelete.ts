@@ -61,17 +61,22 @@ export const useCountdownDelete = (
     const startTime = Date.now();
     const endTime = startTime + COUNTDOWN_SECONDS * 1000;
 
-    // Update countdown display frequently for responsive UI
+    // Update countdown display
     const timer = setInterval(() => {
       const now = Date.now();
       const remaining = Math.ceil((endTime - now) / 1000);
       
+      // Only update if item is still in the deletion queue
       if (remaining >= 0) {
-        setDeletingItems((prev) =>
-          prev.map((item) =>
+        setDeletingItems((prev) => {
+          // Check if item still exists before updating
+          const itemExists = prev.some(item => item.itemId === itemId);
+          if (!itemExists) return prev;
+          
+          return prev.map((item) =>
             item.itemId === itemId ? { ...item, countdown: remaining } : item
-          )
-        );
+          );
+        });
       }
       
       if (remaining <= 0) {
@@ -81,7 +86,7 @@ export const useCountdownDelete = (
           timersRef.current.delete(itemId);
         }
       }
-    }, 200); // Update every 200ms for responsive feel while avoiding excessive renders
+    }, 500); // Update every 500ms for better performance while maintaining good UX
 
     timersRef.current.set(itemId, timer);
 

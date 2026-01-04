@@ -164,16 +164,18 @@ export const ListsPage = () => {
                     {isDeleting ? (
                       <>
                         <Chip
-                          label={`${deletingList.countdown}s`}
+                          label={`${deletingList?.countdown ?? 0}s`}
                           size="small"
                           color="warning"
                           sx={{ mr: 1 }}
+                          aria-label={`Deletion countdown: ${deletingList?.countdown ?? 0} seconds`}
                         />
                         <Button
                           size="small"
                           variant="contained"
                           color="warning"
                           onClick={() => cancelDelete(list.id)}
+                          aria-label={`Cancel deletion of ${list.name}`}
                         >
                           Undo
                         </Button>

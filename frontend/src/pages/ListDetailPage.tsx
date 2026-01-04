@@ -141,16 +141,18 @@ const SortableItem = ({
         {isDeleting ? (
           <>
             <Chip
-              label={`${deleteCountdown}s`}
+              label={`${deleteCountdown ?? 0}s`}
               size="small"
               color="warning"
               sx={{ mr: 1 }}
+              aria-label={`Deletion countdown: ${deleteCountdown ?? 0} seconds`}
             />
             <Button
               size="small"
               variant="contained"
               color="warning"
               onClick={onCancelDelete}
+              aria-label={`Cancel deletion of ${item.name}`}
             >
               Undo
             </Button>
@@ -274,16 +276,18 @@ const GroupHeader = ({
       {isDeleting ? (
         <>
           <Chip
-            label={`${deleteCountdown}s`}
+            label={`${deleteCountdown ?? 0}s`}
             size="small"
             color="warning"
             sx={{ mr: 1 }}
+            aria-label={`Deletion countdown: ${deleteCountdown ?? 0} seconds`}
           />
           <Button
             size="small"
             variant="contained"
             color="warning"
             onClick={onCancelDelete}
+            aria-label={`Cancel deletion of ${group.name} group`}
           >
             Undo
           </Button>
