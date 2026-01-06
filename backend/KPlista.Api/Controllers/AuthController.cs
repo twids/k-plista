@@ -31,9 +31,11 @@ public class AuthController : ControllerBase
     /// </summary>
     private async Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null)
     {
+        var normalizedProvider = NormalizeProvider(provider);
+
         // First, try to find by provider + externalUserId (exact match)
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId);
+            .FirstOrDefaultAsync(u => u.ExternalProvider == normalizedProvider && u.ExternalUserId == externalUserId);
 
         if (user != null)
         {
@@ -55,7 +57,8 @@ public class AuthController : ControllerBase
         if (existingUserWithEmail != null)
         {
             // Email exists - check if it's the same provider
-            if (existingUserWithEmail.ExternalProvider != provider)
+            // Compare providers case-insensitively to avoid false mismatches (e.g., "Google" vs "google")
+            if (!string.Equals(existingUserWithEmail.ExternalProvider, normalizedProvider, StringComparison.OrdinalIgnoreCase))
             {
                 // Different provider - this is an error condition
                 var providerName = string.IsNullOrWhiteSpace(existingUserWithEmail.ExternalProvider) 
@@ -82,7 +85,7 @@ public class AuthController : ControllerBase
             Email = email,
             Name = name,
             ProfilePictureUrl = profilePictureUrl,
-            ExternalProvider = provider,
+            ExternalProvider = normalizedProvider,
             ExternalUserId = externalUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -90,6 +93,11 @@ public class AuthController : ControllerBase
 
         _context.Users.Add(newUser);
         return newUser;
+    }
+
+    private static string NormalizeProvider(string provider)
+    {
+        return provider.Trim().ToLowerInvariant();
     }
 
     // GET: api/auth/me
