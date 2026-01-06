@@ -49,11 +49,12 @@ public class ExternalUserService : IExternalUserService
     /// </summary>
     public async Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null, CancellationToken ct = default)
     {
+        var normalizedProvider = NormalizeProvider(provider);
         var maskedEmail = LogMasking.MaskEmail(email);
         var maskedExtId = LogMasking.MaskExternalId(externalUserId);
 
         // Try exact match: provider + externalUserId
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.ExternalProvider == provider && u.ExternalUserId == externalUserId, ct);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.ExternalProvider == normalizedProvider && u.ExternalUserId == externalUserId, ct);
         if (user != null)
         {
             // Update existing user
@@ -68,11 +69,12 @@ public class ExternalUserService : IExternalUserService
         var existingEmailUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
         if (existingEmailUser != null)
         {
-            if (existingEmailUser.ExternalProvider != provider)
+            // Compare providers case-insensitively to avoid false mismatches (e.g., "Google" vs "google")
+            if (!string.Equals(existingEmailUser.ExternalProvider, normalizedProvider, StringComparison.OrdinalIgnoreCase))
             {
                 // Email exists with different provider - linking not allowed in this flow
                 _logger.LogWarning("ExternalAuth: Email {Email} already exists with provider {Existing} (new: {New}, extId: {ExternalId})", 
-                    maskedEmail, existingEmailUser.ExternalProvider, provider, maskedExtId);
+                    maskedEmail, existingEmailUser.ExternalProvider, normalizedProvider, maskedExtId);
                 throw new InvalidOperationException($"Account exists with {existingEmailUser.ExternalProvider}. Please sign in with that provider.");
             }
 
@@ -93,7 +95,7 @@ public class ExternalUserService : IExternalUserService
             Email = email,
             Name = name,
             ProfilePictureUrl = profilePictureUrl,
-            ExternalProvider = provider,
+            ExternalProvider = normalizedProvider,
             ExternalUserId = externalUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -101,7 +103,12 @@ public class ExternalUserService : IExternalUserService
 
         _db.Users.Add(newUser);
         _logger.LogInformation("ExternalAuth: New user created for {Email} via {Provider} (extId: {ExternalId})", 
-            maskedEmail, provider, maskedExtId);
+            maskedEmail, normalizedProvider, maskedExtId);
         return newUser;
+    }
+
+    private static string NormalizeProvider(string provider)
+    {
+        return provider.Trim().ToLowerInvariant();
     }
 }
