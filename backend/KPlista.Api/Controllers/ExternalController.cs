@@ -62,20 +62,27 @@ public class ExternalController : ControllerBase
             targetListId = user.DefaultListId.Value;
         }
 
-        // Verify user has access to the list
-        var list = await _context.GroceryLists.FindAsync(targetListId);
+        // Verify user has access to the list (optimized with left join)
+        var list = await _context.GroceryLists
+            .Where(l => l.Id == targetListId)
+            .GroupJoin(
+                _context.ListShares.Where(s => s.SharedWithUserId == userId && s.CanEdit),
+                l => l.Id,
+                s => s.GroceryListId,
+                (l, shares) => new
+                {
+                    l.Id,
+                    l.OwnerId,
+                    HasEditAccess = l.OwnerId == userId || shares.Any()
+                })
+            .FirstOrDefaultAsync();
 
         if (list == null)
         {
             return NotFound(new { error = "List not found" });
         }
 
-        // Check if user owns the list or has edit permissions via share
-        var hasAccess = list.OwnerId == userId ||
-            await _context.ListShares
-                .AnyAsync(s => s.GroceryListId == targetListId && s.SharedWithUserId == userId && s.CanEdit);
-
-        if (!hasAccess)
+        if (!list.HasEditAccess)
         {
             return Forbid();
         }

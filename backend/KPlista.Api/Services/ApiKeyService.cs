@@ -22,11 +22,17 @@ public class ApiKeyService : IApiKeyService
         _context = context;
     }
 
+    /// <summary>
+    /// Generates a cryptographically secure API key using 256 bits of random data.
+    /// The key is encoded as unpadded URL-safe base64 (base64url) for safe use in HTTP headers.
+    /// </summary>
+    /// <returns>A URL-safe base64 encoded string suitable for use as an API key.</returns>
     public string GenerateApiKey()
     {
         // Generate a cryptographically secure random API key
         var bytes = new byte[32];
         RandomNumberGenerator.Fill(bytes);
+        // Encode as unpadded URL-safe base64 (base64url) for safe use in HTTP headers
         return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
