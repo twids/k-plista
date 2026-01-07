@@ -5,7 +5,9 @@ interface VersionInfo {
   buildTimestamp: number;
 }
 
-export const useVersionCheck = (checkInterval: number = 5 * 60 * 1000) => {
+const DEFAULT_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+export const useVersionCheck = (checkInterval: number = DEFAULT_CHECK_INTERVAL_MS) => {
   const [hasUpdate, setHasUpdate] = useState(false);
   const [currentVersion, setCurrentVersion] = useState<VersionInfo | null>(null);
 
@@ -40,6 +42,12 @@ export const useVersionCheck = (checkInterval: number = 5 * 60 * 1000) => {
           return;
         }
         const serverVersion = await response.json();
+
+        // Validate server version structure
+        if (!serverVersion || typeof serverVersion.buildTimestamp !== 'number') {
+          console.error('Invalid version data from server:', serverVersion);
+          return;
+        }
 
         // Compare build timestamps
         if (serverVersion.buildTimestamp !== currentVersion.buildTimestamp) {

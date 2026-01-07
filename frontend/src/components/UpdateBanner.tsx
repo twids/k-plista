@@ -1,6 +1,8 @@
 import { Alert, Button, Slide } from '@mui/material';
 import { useVersionCheck } from '../hooks/useVersionCheck';
 
+const BANNER_Z_INDEX = 9999;
+
 export const UpdateBanner = () => {
   const { hasUpdate, refreshPage } = useVersionCheck();
 
@@ -18,7 +20,7 @@ export const UpdateBanner = () => {
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 9999,
+          zIndex: BANNER_Z_INDEX,
           borderRadius: 0,
         }}
       >
