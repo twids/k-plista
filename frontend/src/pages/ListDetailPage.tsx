@@ -606,7 +606,7 @@ export const ListDetailPage = () => {
               key={group.id}
               elevation={1}
               sx={{
-                mb: 2,
+                mb: 1.5,
                 p: 1,
                 borderRadius: 2,
                 border: '2px dashed transparent',

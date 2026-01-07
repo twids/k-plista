@@ -133,7 +133,7 @@ export const ListsPage = () => {
             </Typography>
           </Box>
         ) : (
-          <Stack spacing={1.5} sx={{ mt: 2 }}>
+          <Stack spacing={1} sx={{ mt: 2 }}>
             {lists.map((list) => {
               const deletingList = deletingItems.find(d => d.itemId === list.id);
               const isDeleting = !!deletingList;
