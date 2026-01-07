@@ -14,6 +14,10 @@ export const useVersionCheck = (checkInterval: number = 5 * 60 * 1000) => {
     const loadInitialVersion = async () => {
       try {
         const response = await fetch('/version.json');
+        if (!response.ok) {
+          console.error('Failed to load initial version: HTTP', response.status);
+          return;
+        }
         const version = await response.json();
         setCurrentVersion(version);
       } catch (error) {
@@ -31,6 +35,10 @@ export const useVersionCheck = (checkInterval: number = 5 * 60 * 1000) => {
       try {
         // Add timestamp to prevent caching
         const response = await fetch(`/version.json?t=${Date.now()}`);
+        if (!response.ok) {
+          console.error('Failed to check for updates: HTTP', response.status);
+          return;
+        }
         const serverVersion = await response.json();
 
         // Compare build timestamps
@@ -42,10 +50,7 @@ export const useVersionCheck = (checkInterval: number = 5 * 60 * 1000) => {
       }
     };
 
-    // Check immediately
-    checkForUpdate();
-
-    // Set up periodic checking
+    // Set up periodic checking without immediate check
     const interval = setInterval(checkForUpdate, checkInterval);
 
     return () => clearInterval(interval);
