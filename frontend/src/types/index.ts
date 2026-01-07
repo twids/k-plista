@@ -126,3 +126,25 @@ export interface AcceptShare {
   listName: string;
   ownerName: string;
 }
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+export interface CreateApiKeyDto {
+  name: string;
+}
+
+export interface CreateApiKeyResponse {
+  id: string;
+  name: string;
+  key: string;
+  createdAt: string;
+}
+
+export interface DefaultListDto {
+  listId?: string;
+}

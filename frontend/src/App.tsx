@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { ListsPage } from './pages/ListsPage';
 import { ListDetailPage } from './pages/ListDetailPage';
 import { AcceptSharePage } from './pages/AcceptSharePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { UpdateBanner } from './components/UpdateBanner';
 
 const theme = createTheme({
@@ -59,6 +60,14 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <ListDetailPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <PrivateRoute>
+            <SettingsPage />
           </PrivateRoute>
         }
       />

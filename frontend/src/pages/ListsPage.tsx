@@ -22,6 +22,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import EditIcon from '@mui/icons-material/Edit';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
 import type { GroceryList } from '../types';
 import { groceryListService } from '../services/groceryListService';
 import { useAuth } from '../hooks/useAuth';
@@ -108,6 +109,9 @@ export const ListsPage = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Koplista
           </Typography>
+          <IconButton color="inherit" onClick={() => navigate('/settings')}>
+            <SettingsIcon />
+          </IconButton>
           <IconButton color="inherit" onClick={handleLogout}>
             <LogoutIcon />
           </IconButton>
