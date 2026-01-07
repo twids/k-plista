@@ -9,6 +9,7 @@ import { ListDetailPage } from './pages/ListDetailPage';
 import { AcceptSharePage } from './pages/AcceptSharePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UpdateBanner } from './components/UpdateBanner';
+import { LoadingScreen } from './components/LoadingScreen';
 
 const theme = createTheme({
   palette: {
@@ -36,7 +37,7 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen />;
   }
 
   return user ? <>{children}</> : <Navigate to="/login" replace />;
