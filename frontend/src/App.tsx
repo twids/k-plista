@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { ListsPage } from './pages/ListsPage';
 import { ListDetailPage } from './pages/ListDetailPage';
 import { AcceptSharePage } from './pages/AcceptSharePage';
+import { UpdateBanner } from './components/UpdateBanner';
 
 const theme = createTheme({
   palette: {
@@ -73,6 +74,7 @@ function App() {
       <Router>
         <AuthProvider>
           <SignalRProvider>
+            <UpdateBanner />
             <AppRoutes />
           </SignalRProvider>
         </AuthProvider>
