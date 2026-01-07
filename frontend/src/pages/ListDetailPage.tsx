@@ -21,6 +21,7 @@ import {
   AvatarGroup,
   Tooltip,
   Paper,
+  Button,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
@@ -59,7 +60,6 @@ import { CreateGroupDialog } from '../components/CreateGroupDialog';
 import { useSignalR } from '../hooks/useSignalR';
 import signalRService from '../services/signalRService';
 import { useCountdownDelete } from '../hooks/useCountdownDelete';
-import { CountdownDeleteSnackbar } from '../components/CountdownDeleteSnackbar';
 import { useGroupCollapse } from '../hooks/useGroupCollapse';
 
 // Sortable Item Component
@@ -68,9 +68,20 @@ interface SortableItemProps {
   onToggleBought: (item: GroceryItem) => void;
   onEdit: (item: GroceryItem) => void;
   onDelete: (itemId: string, itemName: string) => void;
+  isDeleting: boolean;
+  deleteCountdown?: number;
+  onCancelDelete?: () => void;
 }
 
-const SortableItem = ({ item, onToggleBought, onEdit, onDelete }: SortableItemProps) => {
+const SortableItem = ({ 
+  item, 
+  onToggleBought, 
+  onEdit, 
+  onDelete, 
+  isDeleting,
+  deleteCountdown,
+  onCancelDelete 
+}: SortableItemProps) => {
   const {
     attributes,
     listeners,
@@ -94,10 +105,10 @@ const SortableItem = ({ item, onToggleBought, onEdit, onDelete }: SortableItemPr
         textDecoration: item.isBought ? 'line-through' : 'none',
         opacity: item.isBought ? 0.6 : 1,
         py: 0.5,
-        bgcolor: isDragging ? 'action.hover' : 'transparent',
+        bgcolor: isDeleting ? 'warning.light' : isDragging ? 'action.hover' : 'transparent',
         cursor: isDragging ? 'grabbing' : 'grab',
         '&:hover': {
-          bgcolor: 'action.hover',
+          bgcolor: isDeleting ? 'warning.light' : 'action.hover',
         },
       }}
     >
@@ -119,6 +130,7 @@ const SortableItem = ({ item, onToggleBought, onEdit, onDelete }: SortableItemPr
           checked={item.isBought}
           onChange={() => onToggleBought(item)}
           tabIndex={-1}
+          disabled={isDeleting}
         />
       </ListItemIcon>
       <ListItemText
@@ -126,23 +138,46 @@ const SortableItem = ({ item, onToggleBought, onEdit, onDelete }: SortableItemPr
         secondary={`${item.quantity} ${item.unit || 'pcs'}`}
       />
       <ListItemSecondaryAction>
-        <IconButton
-          edge="end"
-          aria-label={`edit ${item.name}`}
-          size="small"
-          onClick={() => onEdit(item)}
-          sx={{ mr: 1 }}
-        >
-          <EditIcon fontSize="small" />
-        </IconButton>
-        <IconButton
-          edge="end"
-          aria-label="delete"
-          size="small"
-          onClick={() => onDelete(item.id, item.name)}
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
+        {isDeleting ? (
+          <>
+            <Chip
+              label={`${deleteCountdown ?? 0}s`}
+              size="small"
+              color="warning"
+              sx={{ mr: 1 }}
+              aria-label={`Deletion countdown: ${deleteCountdown ?? 0} seconds`}
+            />
+            <Button
+              size="small"
+              variant="contained"
+              color="warning"
+              onClick={onCancelDelete}
+              aria-label={`Cancel deletion of ${item.name}`}
+            >
+              Undo
+            </Button>
+          </>
+        ) : (
+          <>
+            <IconButton
+              edge="end"
+              aria-label={`edit ${item.name}`}
+              size="small"
+              onClick={() => onEdit(item)}
+              sx={{ mr: 1 }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              edge="end"
+              aria-label="delete"
+              size="small"
+              onClick={() => onDelete(item.id, item.name)}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </>
+        )}
       </ListItemSecondaryAction>
     </ListItem>
   );
@@ -182,6 +217,9 @@ interface GroupHeaderProps {
   onEdit: () => void;
   onDelete: () => void;
   onAddItem: () => void;
+  isDeleting?: boolean;
+  deleteCountdown?: number;
+  onCancelDelete?: () => void;
 }
 
 const GroupHeader = ({
@@ -193,14 +231,18 @@ const GroupHeader = ({
   onEdit,
   onDelete,
   onAddItem,
+  isDeleting,
+  deleteCountdown,
+  onCancelDelete,
 }: GroupHeaderProps) => {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1 }}>
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1, bgcolor: isDeleting ? 'warning.light' : 'transparent', borderRadius: 1, py: 0.5 }}>
       <IconButton
         size="small"
         aria-label={isCollapsed ? `Expand ${group.name} group` : `Collapse ${group.name} group`}
         onClick={onToggleCollapse}
         sx={{ p: 0.5 }}
+        disabled={isDeleting}
       >
         {isCollapsed ? (
           <ChevronRightIcon fontSize="small" />
@@ -216,7 +258,7 @@ const GroupHeader = ({
       <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
       <Chip size="small" label={groupItemsCount} />
       <Box sx={{ flexGrow: 1 }} />
-      {activeId && (
+      {activeId && !isDeleting && (
         <Box
           role="region"
           aria-label={`Drop zone for ${group.name} group`}
@@ -231,28 +273,51 @@ const GroupHeader = ({
           Drop items here
         </Box>
       )}
-      <IconButton
-        size="small"
-        aria-label={`edit-group-${group.name}`}
-        onClick={onEdit}
-      >
-        <EditIcon fontSize="small" />
-      </IconButton>
-      <IconButton
-        size="small"
-        aria-label={`delete-group-${group.name}`}
-        onClick={onDelete}
-      >
-        <DeleteIcon fontSize="small" />
-      </IconButton>
-      <IconButton
-        size="small"
-        aria-label={`add-item-to-group-${group.name}`}
-        onClick={onAddItem}
-        sx={{ ml: 1 }}
-      >
-        <AddIcon fontSize="small" />
-      </IconButton>
+      {isDeleting ? (
+        <>
+          <Chip
+            label={`${deleteCountdown ?? 0}s`}
+            size="small"
+            color="warning"
+            sx={{ mr: 1 }}
+            aria-label={`Deletion countdown: ${deleteCountdown ?? 0} seconds`}
+          />
+          <Button
+            size="small"
+            variant="contained"
+            color="warning"
+            onClick={onCancelDelete}
+            aria-label={`Cancel deletion of ${group.name} group`}
+          >
+            Undo
+          </Button>
+        </>
+      ) : (
+        <>
+          <IconButton
+            size="small"
+            aria-label={`edit-group-${group.name}`}
+            onClick={onEdit}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            aria-label={`delete-group-${group.name}`}
+            onClick={onDelete}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            aria-label={`add-item-to-group-${group.name}`}
+            onClick={onAddItem}
+            sx={{ ml: 1 }}
+          >
+            <AddIcon fontSize="small" />
+          </IconButton>
+        </>
+      )}
     </Stack>
   );
 };
@@ -309,9 +374,9 @@ export const ListDetailPage = () => {
     }
   };
 
-  const { countdownState, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteItemAction);
+  const { deletingItems, initiateDelete, cancelDelete } = useCountdownDelete(handleDeleteItemAction);
   const { 
-    countdownState: groupCountdownState, 
+    deletingItems: deletingGroups, 
     initiateDelete: initiateGroupDelete, 
     cancelDelete: cancelGroupDelete 
   } = useCountdownDelete(handleDeleteGroupAction);
@@ -534,6 +599,7 @@ export const ListDetailPage = () => {
       <>
         {groupedItems.map(({ group, items: groupItems }) => {
           const groupItemIds = groupItems.map(item => item.id);
+          const deletingGroup = deletingGroups.find(d => d.itemId === group.id);
           
           return (
             <Paper
@@ -568,6 +634,9 @@ export const ListDetailPage = () => {
                       setPrefillGroupId(group.id);
                       setOpenItemDialog(true);
                     }}
+                    isDeleting={!!deletingGroup}
+                    deleteCountdown={deletingGroup?.countdown}
+                    onCancelDelete={() => cancelGroupDelete(group.id)}
                   />
                 ) : (
                   <>
@@ -588,6 +657,9 @@ export const ListDetailPage = () => {
                           setPrefillGroupId(group.id);
                           setOpenItemDialog(true);
                         }}
+                        isDeleting={!!deletingGroup}
+                        deleteCountdown={deletingGroup?.countdown}
+                        onCancelDelete={() => cancelGroupDelete(group.id)}
                       />
                     </Box>
                     <SortableContext items={groupItemIds} strategy={verticalListSortingStrategy}>
@@ -606,15 +678,21 @@ export const ListDetailPage = () => {
                             </Typography>
                           </ListItem>
                         ) : (
-                          groupItems.map(item => (
-                            <SortableItem
-                              key={item.id}
-                              item={item}
-                              onToggleBought={handleToggleBought}
-                              onEdit={handleEditItem}
-                              onDelete={handleDeleteItem}
-                            />
-                          ))
+                          groupItems.map(item => {
+                            const deletingItem = deletingItems.find(d => d.itemId === item.id);
+                            return (
+                              <SortableItem
+                                key={item.id}
+                                item={item}
+                                onToggleBought={handleToggleBought}
+                                onEdit={handleEditItem}
+                                onDelete={handleDeleteItem}
+                                isDeleting={!!deletingItem}
+                                deleteCountdown={deletingItem?.countdown}
+                                onCancelDelete={() => cancelDelete(item.id)}
+                              />
+                            );
+                          })
                         )}
                       </List>
                     </SortableContext>
@@ -656,15 +734,21 @@ export const ListDetailPage = () => {
                     </Typography>
                   </ListItem>
                 ) : (
-                  ungroupedItems.map(item => (
-                    <SortableItem
-                      key={item.id}
-                      item={item}
-                      onToggleBought={handleToggleBought}
-                      onEdit={handleEditItem}
-                      onDelete={handleDeleteItem}
-                    />
-                  ))
+                  ungroupedItems.map(item => {
+                    const deletingItem = deletingItems.find(d => d.itemId === item.id);
+                    return (
+                      <SortableItem
+                        key={item.id}
+                        item={item}
+                        onToggleBought={handleToggleBought}
+                        onEdit={handleEditItem}
+                        onDelete={handleDeleteItem}
+                        isDeleting={!!deletingItem}
+                        deleteCountdown={deletingItem?.countdown}
+                        onCancelDelete={() => cancelDelete(item.id)}
+                      />
+                    );
+                  })
                 )}
               </List>
             </SortableContext>
@@ -810,20 +894,6 @@ export const ListDetailPage = () => {
           onCreate={handleCreateGroup}
           onEdit={handleEditGroup}
           editGroup={editingGroup}
-        />
-
-        <CountdownDeleteSnackbar
-          open={countdownState.isCountingDown}
-          message={countdownState.message}
-          countdown={countdownState.countdown}
-          onCancel={cancelDelete}
-        />
-
-        <CountdownDeleteSnackbar
-          open={groupCountdownState.isCountingDown}
-          message={groupCountdownState.message}
-          countdown={groupCountdownState.countdown}
-          onCancel={cancelGroupDelete}
         />
       </Box>
 
