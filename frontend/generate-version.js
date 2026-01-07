@@ -1,7 +1,6 @@
 import { writeFileSync } from 'fs';
 
 const version = {
-  buildTime: new Date().toISOString(),
   buildTimestamp: Date.now()
 };
 

@@ -4,12 +4,13 @@ import { useVersionCheck } from '../hooks/useVersionCheck';
 const BANNER_Z_INDEX = 9999;
 
 export const UpdateBanner = () => {
-  const { hasUpdate, refreshPage } = useVersionCheck();
+  const { hasUpdate, refreshPage, dismissUpdate } = useVersionCheck();
 
   return (
     <Slide direction="down" in={hasUpdate} mountOnEnter unmountOnExit>
       <Alert
         severity="info"
+        onClose={dismissUpdate}
         action={
           <Button color="inherit" size="small" onClick={refreshPage}>
             Update
