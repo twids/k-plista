@@ -62,16 +62,19 @@ public class ExternalController : ControllerBase
             targetListId = user.DefaultListId.Value;
         }
 
-        // Verify user has access to the list (optimized single query with includes)
+        // Verify user has access to the list (optimized with left join)
         var list = await _context.GroceryLists
             .Where(l => l.Id == targetListId)
-            .Select(l => new
-            {
-                l.Id,
-                l.OwnerId,
-                HasEditAccess = l.OwnerId == userId ||
-                    _context.ListShares.Any(s => s.GroceryListId == targetListId && s.SharedWithUserId == userId && s.CanEdit)
-            })
+            .GroupJoin(
+                _context.ListShares.Where(s => s.SharedWithUserId == userId && s.CanEdit),
+                l => l.Id,
+                s => s.GroceryListId,
+                (l, shares) => new
+                {
+                    l.Id,
+                    l.OwnerId,
+                    HasEditAccess = l.OwnerId == userId || shares.Any()
+                })
             .FirstOrDefaultAsync();
 
         if (list == null)
