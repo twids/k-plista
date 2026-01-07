@@ -110,6 +110,12 @@ export const SettingsPage = () => {
     setDeleteConfirmOpen(true);
   };
 
+  const handleDeleteConfirm = () => {
+    if (keyToDelete) {
+      handleDeleteApiKey(keyToDelete.id);
+    }
+  };
+
   const handleDeleteCancel = () => {
     setDeleteConfirmOpen(false);
     setKeyToDelete(null);
@@ -319,7 +325,7 @@ export const SettingsPage = () => {
         <DialogActions>
           <Button onClick={handleDeleteCancel}>Cancel</Button>
           <Button
-            onClick={() => keyToDelete && handleDeleteApiKey(keyToDelete.id)}
+            onClick={handleDeleteConfirm}
             variant="contained"
             color="error"
           >
