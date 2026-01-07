@@ -12,7 +12,7 @@ export const UpdateBanner = () => {
         severity="info"
         action={
           <Button color="inherit" size="small" onClick={refreshPage}>
-            Uppdatera
+            Update
           </Button>
         }
         sx={{
@@ -24,7 +24,7 @@ export const UpdateBanner = () => {
           borderRadius: 0,
         }}
       >
-        En ny version av applikationen är tillgänglig
+        A new version of the application is available
       </Alert>
     </Slide>
   );
