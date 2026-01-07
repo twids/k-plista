@@ -28,7 +28,7 @@ export const LoadingScreen = () => {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100vh',
-        backgroundColor: '#fafafa',
+        backgroundColor: 'background.default',
         animation: `${fadeIn} 0.3s ease-in`,
       }}
     >
