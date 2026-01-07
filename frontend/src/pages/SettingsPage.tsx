@@ -45,6 +45,8 @@ export const SettingsPage = () => {
   const [newKeyName, setNewKeyName] = useState('');
   const [newApiKey, setNewApiKey] = useState<CreateApiKeyResponse | null>(null);
   const [showKeyDialog, setShowKeyDialog] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [keyToDelete, setKeyToDelete] = useState<{ id: string; name: string } | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const navigate = useNavigate();
 
@@ -97,7 +99,20 @@ export const SettingsPage = () => {
     } catch (error) {
       console.error('Failed to delete API key:', error);
       setSnackbar({ open: true, message: 'Failed to delete API key', severity: 'error' });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setKeyToDelete(null);
     }
+  };
+
+  const handleDeleteClick = (id: string, name: string) => {
+    setKeyToDelete({ id, name });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false);
+    setKeyToDelete(null);
   };
 
   const handleDefaultListChange = async (listId: string) => {
@@ -206,7 +221,7 @@ export const SettingsPage = () => {
                     key={key.id}
                     sx={{ border: 1, borderColor: 'divider', borderRadius: 1, mb: 1 }}
                     secondaryAction={
-                      <IconButton edge="end" onClick={() => handleDeleteApiKey(key.id)}>
+                      <IconButton edge="end" onClick={() => handleDeleteClick(key.id, key.name)}>
                         <DeleteIcon />
                       </IconButton>
                     }
@@ -284,6 +299,32 @@ export const SettingsPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowKeyDialog(false)} variant="contained">Done</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={handleDeleteCancel}>
+        <DialogTitle>Delete API Key?</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This action cannot be undone.
+          </Alert>
+          <Typography variant="body1" gutterBottom>
+            Are you sure you want to delete the API key "{keyToDelete?.name}"?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Deleting this key will break any external integrations currently using it.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button
+            onClick={() => keyToDelete && handleDeleteApiKey(keyToDelete.id)}
+            variant="contained"
+            color="error"
+          >
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
 
