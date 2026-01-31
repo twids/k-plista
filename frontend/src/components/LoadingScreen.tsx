@@ -43,6 +43,7 @@ export const LoadingScreen = () => {
         <CircularProgress
           size={60}
           thickness={4}
+          aria-label="Loading application"
           sx={{
             color: 'primary.main',
           }}
