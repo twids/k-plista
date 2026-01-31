@@ -42,21 +42,25 @@ public class GroceryListsController : ControllerBase
         var lists = await _context.GroceryLists
             .Include(gl => gl.Owner)
             .Include(gl => gl.Items)
-            .Include(gl => gl.Shares)
-            .Where(gl => gl.OwnerId == userId || gl.Shares.Any(s => s.SharedWithUserId == userId))
-            .Select(gl => new GroceryListDto(
-                gl.Id,
-                gl.Name,
-                gl.Description,
-                gl.OwnerId,
-                gl.Owner.Name,
-                gl.CreatedAt,
-                gl.UpdatedAt,
-                gl.Items.Count,
-                gl.Items.Count(i => i.IsBought),
-                gl.Shares.Any(),
-                gl.AutoRemoveBoughtItemsEnabled,
-                gl.AutoRemoveBoughtItemsDelayMinutes
+            .GroupJoin(
+                _context.ListShares.Where(s => s.SharedWithUserId == userId),
+                gl => gl.Id,
+                s => s.GroceryListId,
+                (gl, shares) => new { List = gl, Shares = shares })
+            .Where(x => x.List.OwnerId == userId || x.Shares.Any())
+            .Select(x => new GroceryListDto(
+                x.List.Id,
+                x.List.Name,
+                x.List.Description,
+                x.List.OwnerId,
+                x.List.Owner.Name,
+                x.List.CreatedAt,
+                x.List.UpdatedAt,
+                x.List.Items.Count,
+                x.List.Items.Count(i => i.IsBought),
+                x.Shares.Any(),
+                x.List.AutoRemoveBoughtItemsEnabled,
+                x.List.AutoRemoveBoughtItemsDelayMinutes
             ))
             .ToListAsync();
 
@@ -69,36 +73,41 @@ public class GroceryListsController : ControllerBase
     {
         var userId = GetCurrentUserId();
 
-        var list = await _context.GroceryLists
+        var result = await _context.GroceryLists
             .Include(gl => gl.Owner)
             .Include(gl => gl.Items)
-            .Include(gl => gl.Shares)
-            .FirstOrDefaultAsync(gl => gl.Id == id);
+            .Where(gl => gl.Id == id)
+            .GroupJoin(
+                _context.ListShares.Where(s => s.SharedWithUserId == userId),
+                gl => gl.Id,
+                s => s.GroceryListId,
+                (gl, shares) => new { List = gl, Shares = shares })
+            .FirstOrDefaultAsync();
 
-        if (list == null)
+        if (result == null)
         {
             return NotFound();
         }
 
         // Check if user has access to this list
-        if (list.OwnerId != userId && !list.Shares.Any(s => s.SharedWithUserId == userId))
+        if (result.List.OwnerId != userId && !result.Shares.Any())
         {
             return Forbid();
         }
 
         var dto = new GroceryListDto(
-            list.Id,
-            list.Name,
-            list.Description,
-            list.OwnerId,
-            list.Owner.Name,
-            list.CreatedAt,
-            list.UpdatedAt,
-            list.Items.Count,
-            list.Items.Count(i => i.IsBought),
-            list.Shares.Any(),
-            list.AutoRemoveBoughtItemsEnabled,
-            list.AutoRemoveBoughtItemsDelayMinutes
+            result.List.Id,
+            result.List.Name,
+            result.List.Description,
+            result.List.OwnerId,
+            result.List.Owner.Name,
+            result.List.CreatedAt,
+            result.List.UpdatedAt,
+            result.List.Items.Count,
+            result.List.Items.Count(i => i.IsBought),
+            result.Shares.Any(),
+            result.List.AutoRemoveBoughtItemsEnabled,
+            result.List.AutoRemoveBoughtItemsDelayMinutes
         );
 
         return Ok(dto);
@@ -161,61 +170,67 @@ public class GroceryListsController : ControllerBase
     {
         var userId = GetCurrentUserId();
 
-        var list = await _context.GroceryLists
-            .Include(gl => gl.Shares)
-            .FirstOrDefaultAsync(gl => gl.Id == id);
+        var result = await _context.GroceryLists
+            .Where(gl => gl.Id == id)
+            .GroupJoin(
+                _context.ListShares.Where(s => s.SharedWithUserId == userId && s.CanEdit),
+                gl => gl.Id,
+                s => s.GroceryListId,
+                (gl, shares) => new
+                {
+                    List = gl,
+                    CanEdit = gl.OwnerId == userId || shares.Any()
+                })
+            .FirstOrDefaultAsync();
 
-        if (list == null)
+        if (result == null)
         {
             return NotFound();
         }
 
         // Check if user is owner or has edit permission
-        var canEdit = list.OwnerId == userId || 
-                     list.Shares.Any(s => s.SharedWithUserId == userId && s.CanEdit);
-
-        if (!canEdit)
+        if (!result.CanEdit)
         {
             return Forbid();
         }
 
-        list.Name = dto.Name;
-        list.Description = dto.Description;
-        list.UpdatedAt = DateTime.UtcNow;
-        
+        result.List.Name = dto.Name;
+        result.List.Description = dto.Description;
+        result.List.UpdatedAt = DateTime.UtcNow;
+
         // Validate auto-remove delay minutes if provided
         if (dto.AutoRemoveBoughtItemsDelayMinutes.HasValue && dto.AutoRemoveBoughtItemsDelayMinutes.Value <= 0)
         {
             return BadRequest("AutoRemoveBoughtItemsDelayMinutes must be a positive number of minutes.");
         }
-        
+
         // Track if auto-remove is being disabled
-        bool wasEnabled = list.AutoRemoveBoughtItemsEnabled;
-        
+        bool wasEnabled = result.List.AutoRemoveBoughtItemsEnabled;
+
         // Update auto-remove settings if provided
         if (dto.AutoRemoveBoughtItemsEnabled.HasValue)
         {
-            list.AutoRemoveBoughtItemsEnabled = dto.AutoRemoveBoughtItemsEnabled.Value;
+            result.List.AutoRemoveBoughtItemsEnabled = dto.AutoRemoveBoughtItemsEnabled.Value;
         }
         if (dto.AutoRemoveBoughtItemsDelayMinutes.HasValue)
         {
-            list.AutoRemoveBoughtItemsDelayMinutes = dto.AutoRemoveBoughtItemsDelayMinutes.Value;
+            result.List.AutoRemoveBoughtItemsDelayMinutes = dto.AutoRemoveBoughtItemsDelayMinutes.Value;
         }
-        
+
         // If auto-remove was just disabled, cancel all pending auto-removal jobs for this list
-        if (wasEnabled && !list.AutoRemoveBoughtItemsEnabled)
+        if (wasEnabled && !result.List.AutoRemoveBoughtItemsEnabled)
         {
             var itemsWithJobs = await _context.GroceryItems
                 .Where(gi => gi.GroceryListId == id && gi.AutoRemoveJobId != null)
                 .ToListAsync();
-                
+
             foreach (var item in itemsWithJobs)
             {
                 BackgroundJob.Delete(item.AutoRemoveJobId!);
                 item.AutoRemoveJobId = null;
             }
-            
-            _logger.LogInformation("Cancelled {Count} pending auto-removal jobs for list {ListId}", 
+
+            _logger.LogInformation("Cancelled {Count} pending auto-removal jobs for list {ListId}",
                 itemsWithJobs.Count, id);
         }
 
@@ -289,43 +304,47 @@ public class GroceryListsController : ControllerBase
     {
         var userId = GetCurrentUserId();
 
-        var list = await _context.GroceryLists
+        var result = await _context.GroceryLists
             .Include(gl => gl.Owner)
-            .Include(gl => gl.Shares)
-            .FirstOrDefaultAsync(gl => gl.ShareToken == token);
+            .Where(gl => gl.ShareToken == token)
+            .GroupJoin(
+                _context.ListShares.Where(s => s.SharedWithUserId == userId),
+                gl => gl.Id,
+                s => s.GroceryListId,
+                (gl, shares) => new { List = gl, ExistingShare = shares.FirstOrDefault() })
+            .FirstOrDefaultAsync();
 
-        if (list == null)
+        if (result == null)
         {
             return NotFound(new { message = "Invalid or expired share link" });
         }
 
         // Check if user is already owner
-        if (list.OwnerId == userId)
+        if (result.List.OwnerId == userId)
         {
-            return Ok(new AcceptShareDto(list.Id, list.Name, list.Owner.Name));
+            return Ok(new AcceptShareDto(result.List.Id, result.List.Name, result.List.Owner.Name));
         }
 
         // Check if user already has access
-        var existingShare = list.Shares.FirstOrDefault(s => s.SharedWithUserId == userId);
-        if (existingShare != null)
+        if (result.ExistingShare != null)
         {
-            return Ok(new AcceptShareDto(list.Id, list.Name, list.Owner.Name));
+            return Ok(new AcceptShareDto(result.List.Id, result.List.Name, result.List.Owner.Name));
         }
 
         // Create a new share for this user with the permission level set by the owner
         var share = new ListShare
         {
             Id = Guid.NewGuid(),
-            GroceryListId = list.Id,
+            GroceryListId = result.List.Id,
             SharedWithUserId = userId,
-            CanEdit = list.ShareTokenCanEdit,
+            CanEdit = result.List.ShareTokenCanEdit,
             SharedAt = DateTime.UtcNow
         };
 
         _context.ListShares.Add(share);
         await _context.SaveChangesAsync();
 
-        return Ok(new AcceptShareDto(list.Id, list.Name, list.Owner.Name));
+        return Ok(new AcceptShareDto(result.List.Id, result.List.Name, result.List.Owner.Name));
     }
 
     private static string GenerateSecureToken()

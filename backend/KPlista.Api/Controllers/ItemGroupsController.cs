@@ -35,13 +35,21 @@ public class ItemGroupsController : ControllerBase
     private async Task<bool> UserCanEditList(Guid listId, Guid userId)
     {
         var list = await _context.GroceryLists
-            .Include(gl => gl.Shares)
-            .FirstOrDefaultAsync(gl => gl.Id == listId);
+            .Where(gl => gl.Id == listId)
+            .GroupJoin(
+                _context.ListShares.Where(s => s.SharedWithUserId == userId && s.CanEdit),
+                gl => gl.Id,
+                s => s.GroceryListId,
+                (gl, shares) => new
+                {
+                    gl.OwnerId,
+                    HasEditAccess = gl.OwnerId == userId || shares.Any()
+                })
+            .FirstOrDefaultAsync();
 
         if (list == null) return false;
 
-        return list.OwnerId == userId || 
-               list.Shares.Any(s => s.SharedWithUserId == userId && s.CanEdit);
+        return list.HasEditAccess;
     }
 
     // GET: api/grocerylists/{listId}/groups
