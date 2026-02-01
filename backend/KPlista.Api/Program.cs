@@ -18,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Serilog bootstrap (early)
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.With<SensitiveDataEnricher>()  // Add sensitive data masking enricher
     .Enrich.WithProperty("AppStartTimestamp", DateTimeOffset.UtcNow)
     .CreateLogger();
 builder.Host.UseSerilog();
@@ -168,7 +169,8 @@ if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(goo
                     var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
                     if (email != null)
                     {
-                        logger.LogInformation("Google: CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
+                        // Note: Email and external ID are automatically masked by Serilog enricher
+                        logger.LogInformation("Google: CreatingTicket for {Email} (extId {ExternalId})", email, externalId);
                     }
                 }
                 return Task.CompletedTask;
@@ -218,7 +220,8 @@ if (!string.IsNullOrWhiteSpace(facebookAppId) && !string.IsNullOrWhiteSpace(face
                     var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
                     if (email != null)
                     {
-                        logger.LogInformation("Facebook: CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
+                        // Note: Email and external ID are automatically masked by Serilog enricher
+                        logger.LogInformation("Facebook: CreatingTicket for {Email} (extId {ExternalId})", email, externalId);
                     }
                 }
                 return Task.CompletedTask;
