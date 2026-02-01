@@ -152,10 +152,12 @@ public class SettingsController : ControllerBase
                 return BadRequest("List not found");
             }
 
-            // Check if user owns the list or has a share with access
+            // Check if user owns the list or has a share with edit permissions
             var hasAccess = list.OwnerId == userId ||
                 await _context.ListShares
-                    .AnyAsync(s => s.GroceryListId == dto.ListId.Value && s.SharedWithUserId == userId);
+                    .AnyAsync(s => s.GroceryListId == dto.ListId.Value
+                        && s.SharedWithUserId == userId
+                        && s.CanEdit);
 
             if (!hasAccess)
             {
