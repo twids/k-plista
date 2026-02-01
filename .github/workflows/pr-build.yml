@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 jobs:
   backend-build:
@@ -74,3 +75,92 @@ jobs:
           tags: koplista-app:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: e2e/package-lock.json
+      
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      
+      - name: Start application with Docker Compose
+        run: |
+          docker compose up -d --build
+          echo "Waiting for containers to start..."
+          sleep 10
+          echo "Checking container status..."
+          docker compose ps
+          echo "Checking if app container is running..."
+          docker compose logs app | tail -100
+          echo "Waiting for application to be ready..."
+          timeout 120 bash -c 'until curl -4 -sf http://localhost/health > /dev/null 2>&1 || curl -6 -sf http://localhost/health > /dev/null 2>&1; do echo "Waiting for app... ($(date +%T))"; docker compose ps app | grep -q Up || (echo "Container not running!" && docker compose logs app && exit 1); sleep 5; done'
+          echo "Health endpoint responded! Testing it..."
+          curl -v http://localhost/health
+          echo "Application is ready"
+      
+      - name: Check service health
+        run: |
+          docker compose ps
+          echo "=== App logs ===" 
+          docker compose logs app | tail -50
+      
+      - name: Run E2E tests
+        working-directory: e2e
+        run: npm test
+        env:
+          BASE_URL: http://localhost
+          CI: true
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
+      
+      - name: Upload test screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots
+          path: e2e/test-results/
+          retention-days: 7
+      
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        continue-on-error: true
+        with:
+          name: E2E Test Results
+          path: e2e/test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: true
+      
+      - name: Show Docker logs on failure
+        if: failure()
+        run: |
+          echo "=== App Logs ==="
+          docker compose logs app
+          echo "=== PostgreSQL Logs ==="
+          docker compose logs postgres
+      
+      - name: Stop application
+        if: always()
+        run: docker compose down -v
