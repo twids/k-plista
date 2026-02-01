@@ -10,6 +10,10 @@ public class GroceryList
     public DateTime UpdatedAt { get; set; }
     public string? ShareToken { get; set; }
     public bool ShareTokenCanEdit { get; set; } = false;
+    
+    // Auto-remove bought items settings
+    public bool AutoRemoveBoughtItemsEnabled { get; set; } = false;
+    public int AutoRemoveBoughtItemsDelayMinutes { get; set; } = 360; // Default: 6 hours
 
     // Navigation properties
     public User Owner { get; set; } = null!;

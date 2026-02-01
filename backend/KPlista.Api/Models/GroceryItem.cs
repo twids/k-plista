@@ -13,6 +13,9 @@ public class GroceryItem
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? BoughtAt { get; set; }
+    
+    // Hangfire job ID for auto-removal (if scheduled)
+    public string? AutoRemoveJobId { get; set; }
 
     // Navigation properties
     public GroceryList GroceryList { get; set; } = null!;

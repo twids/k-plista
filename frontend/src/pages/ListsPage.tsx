@@ -64,9 +64,14 @@ export const ListsPage = () => {
     }
   };
 
-  const handleCreateList = async (name: string, description?: string) => {
+  const handleCreateList = async (name: string, description?: string, autoRemoveBoughtItemsEnabled?: boolean, autoRemoveBoughtItemsDelayMinutes?: number) => {
     try {
-      await groceryListService.create({ name, description });
+      await groceryListService.create({ 
+        name, 
+        description,
+        autoRemoveBoughtItemsEnabled,
+        autoRemoveBoughtItemsDelayMinutes
+      });
       await loadLists();
       setOpenDialog(false);
     } catch (error) {
@@ -74,9 +79,14 @@ export const ListsPage = () => {
     }
   };
 
-  const handleEditList = async (id: string, name: string, description?: string) => {
+  const handleEditList = async (id: string, name: string, description?: string, autoRemoveBoughtItemsEnabled?: boolean, autoRemoveBoughtItemsDelayMinutes?: number) => {
     try {
-      await groceryListService.update(id, { name, description });
+      await groceryListService.update(id, { 
+        name, 
+        description,
+        autoRemoveBoughtItemsEnabled,
+        autoRemoveBoughtItemsDelayMinutes
+      });
       await loadLists();
       setEditingList(null);
     } catch (error) {

@@ -5,6 +5,7 @@ using KPlista.Api.Data;
 using KPlista.Api.DTOs;
 using KPlista.Api.Models;
 using System.Security.Claims;
+using Hangfire;
 
 namespace KPlista.Api.Controllers;
 
@@ -53,7 +54,9 @@ public class GroceryListsController : ControllerBase
                 gl.UpdatedAt,
                 gl.Items.Count,
                 gl.Items.Count(i => i.IsBought),
-                gl.Shares.Any()
+                gl.Shares.Any(),
+                gl.AutoRemoveBoughtItemsEnabled,
+                gl.AutoRemoveBoughtItemsDelayMinutes
             ))
             .ToListAsync();
 
@@ -93,7 +96,9 @@ public class GroceryListsController : ControllerBase
             list.UpdatedAt,
             list.Items.Count,
             list.Items.Count(i => i.IsBought),
-            list.Shares.Any()
+            list.Shares.Any(),
+            list.AutoRemoveBoughtItemsEnabled,
+            list.AutoRemoveBoughtItemsDelayMinutes
         );
 
         return Ok(dto);
@@ -111,6 +116,12 @@ public class GroceryListsController : ControllerBase
             return Unauthorized();
         }
 
+        // Validate auto-remove delay minutes
+        if (dto.AutoRemoveBoughtItemsDelayMinutes <= 0)
+        {
+            return BadRequest("AutoRemoveBoughtItemsDelayMinutes must be a positive number of minutes.");
+        }
+
         var list = new GroceryList
         {
             Id = Guid.NewGuid(),
@@ -118,7 +129,9 @@ public class GroceryListsController : ControllerBase
             Description = dto.Description,
             OwnerId = userId,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            AutoRemoveBoughtItemsEnabled = dto.AutoRemoveBoughtItemsEnabled,
+            AutoRemoveBoughtItemsDelayMinutes = dto.AutoRemoveBoughtItemsDelayMinutes
         };
 
         _context.GroceryLists.Add(list);
@@ -134,7 +147,9 @@ public class GroceryListsController : ControllerBase
             list.UpdatedAt,
             0,
             0,
-            false
+            false,
+            list.AutoRemoveBoughtItemsEnabled,
+            list.AutoRemoveBoughtItemsDelayMinutes
         );
 
         return CreatedAtAction(nameof(GetGroceryList), new { id = list.Id }, resultDto);
@@ -167,6 +182,42 @@ public class GroceryListsController : ControllerBase
         list.Name = dto.Name;
         list.Description = dto.Description;
         list.UpdatedAt = DateTime.UtcNow;
+        
+        // Validate auto-remove delay minutes if provided
+        if (dto.AutoRemoveBoughtItemsDelayMinutes.HasValue && dto.AutoRemoveBoughtItemsDelayMinutes.Value <= 0)
+        {
+            return BadRequest("AutoRemoveBoughtItemsDelayMinutes must be a positive number of minutes.");
+        }
+        
+        // Track if auto-remove is being disabled
+        bool wasEnabled = list.AutoRemoveBoughtItemsEnabled;
+        
+        // Update auto-remove settings if provided
+        if (dto.AutoRemoveBoughtItemsEnabled.HasValue)
+        {
+            list.AutoRemoveBoughtItemsEnabled = dto.AutoRemoveBoughtItemsEnabled.Value;
+        }
+        if (dto.AutoRemoveBoughtItemsDelayMinutes.HasValue)
+        {
+            list.AutoRemoveBoughtItemsDelayMinutes = dto.AutoRemoveBoughtItemsDelayMinutes.Value;
+        }
+        
+        // If auto-remove was just disabled, cancel all pending auto-removal jobs for this list
+        if (wasEnabled && !list.AutoRemoveBoughtItemsEnabled)
+        {
+            var itemsWithJobs = await _context.GroceryItems
+                .Where(gi => gi.GroceryListId == id && gi.AutoRemoveJobId != null)
+                .ToListAsync();
+                
+            foreach (var item in itemsWithJobs)
+            {
+                BackgroundJob.Delete(item.AutoRemoveJobId!);
+                item.AutoRemoveJobId = null;
+            }
+            
+            _logger.LogInformation("Cancelled {Count} pending auto-removal jobs for list {ListId}", 
+                itemsWithJobs.Count, id);
+        }
 
         await _context.SaveChangesAsync();
 
