@@ -145,79 +145,93 @@ builder.Services.AddAuthentication(options =>
 .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
     ApiKeyAuthenticationOptions.DefaultScheme,
     options => { }
-)
-.AddGoogle(options =>
+);
+
+// Add Google authentication only if configured
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
 {
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.CallbackPath = "/signin-google"; // Standard OAuth callback path
-    options.SaveTokens = false; // We're issuing our own JWT
-    options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
+    builder.Services.AddAuthentication().AddGoogle(options =>
     {
-        OnCreatingTicket = ctx =>
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        options.CallbackPath = "/signin-google"; // Standard OAuth callback path
+        options.SaveTokens = false; // We're issuing our own JWT
+        options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
         {
-            var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
-            var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (email != null || externalId != null)
+            OnCreatingTicket = ctx =>
             {
-                var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
-                if (email != null)
+                var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
+                var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (email != null || externalId != null)
                 {
-                    logger.LogInformation("Google: CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
+                    if (email != null)
+                    {
+                        logger.LogInformation("Google: CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
+                    }
                 }
+                return Task.CompletedTask;
+            },
+            OnTicketReceived = async context =>
+            {
+                var handler = context.HttpContext.RequestServices.GetRequiredService<OAuthTicketHandler>();
+                await handler.HandleAsync(context, "Google");
+            },
+            OnRemoteFailure = context =>
+            {
+                Log.Error(context.Failure, "OAuth Google: Remote failure during external login");
+                context.Response.Redirect("/?error=google_remote_failure");
+                context.HandleResponse();
+                return Task.CompletedTask;
             }
-            return Task.CompletedTask;
-        },
-        OnTicketReceived = async context =>
-        {
-            var handler = context.HttpContext.RequestServices.GetRequiredService<OAuthTicketHandler>();
-            await handler.HandleAsync(context, "Google");
-        },
-        OnRemoteFailure = context =>
-        {
-            Log.Error(context.Failure, "OAuth Google: Remote failure during external login");
-            context.Response.Redirect("/?error=google_remote_failure");
-            context.HandleResponse();
-            return Task.CompletedTask;
-        }
-    };
-})
-.AddFacebook(options =>
+        };
+    });
+}
+
+// Add Facebook authentication only if configured
+var facebookAppId = builder.Configuration["Authentication:Facebook:AppId"];
+var facebookAppSecret = builder.Configuration["Authentication:Facebook:AppSecret"];
+if (!string.IsNullOrWhiteSpace(facebookAppId) && !string.IsNullOrWhiteSpace(facebookAppSecret))
 {
-    options.AppId = builder.Configuration["Authentication:Facebook:AppId"] ?? "";
-    options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? "";
-    options.CallbackPath = "/signin-facebook"; // Standard OAuth callback path
-    options.SaveTokens = false;
-    options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
+    builder.Services.AddAuthentication().AddFacebook(options =>
     {
-        OnCreatingTicket = ctx =>
+        options.AppId = facebookAppId;
+        options.AppSecret = facebookAppSecret;
+        options.CallbackPath = "/signin-facebook"; // Standard OAuth callback path
+        options.SaveTokens = false;
+        options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
         {
-            var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
-            var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (email != null || externalId != null)
+            OnCreatingTicket = ctx =>
             {
-                var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
-                if (email != null)
+                var email = ctx.Identity?.FindFirst(ClaimTypes.Email)?.Value;
+                var externalId = ctx.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (email != null || externalId != null)
                 {
-                    logger.LogInformation("Facebook: CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
+                    var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
+                    if (email != null)
+                    {
+                        logger.LogInformation("Facebook: CreatingTicket for {Email} (extId {ExternalId})", LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalId));
+                    }
                 }
+                return Task.CompletedTask;
+            },
+            OnTicketReceived = async context =>
+            {
+                var handler = context.HttpContext.RequestServices.GetRequiredService<OAuthTicketHandler>();
+                await handler.HandleAsync(context, "Facebook");
+            },
+            OnRemoteFailure = context =>
+            {
+                Log.Error(context.Failure, "OAuth Facebook: Remote failure during external login");
+                context.Response.Redirect("/?error=facebook_remote_failure");
+                context.HandleResponse();
+                return Task.CompletedTask;
             }
-            return Task.CompletedTask;
-        },
-        OnTicketReceived = async context =>
-        {
-            var handler = context.HttpContext.RequestServices.GetRequiredService<OAuthTicketHandler>();
-            await handler.HandleAsync(context, "Facebook");
-        },
-        OnRemoteFailure = context =>
-        {
-            Log.Error(context.Failure, "OAuth Facebook: Remote failure during external login");
-            context.Response.Redirect("/?error=facebook_remote_failure");
-            context.HandleResponse();
-            return Task.CompletedTask;
-        }
-    };
-});
+        };
+    });
+}
 
 builder.Services.AddAuthorization();
 

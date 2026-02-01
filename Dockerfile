@@ -1,5 +1,5 @@
 # Build frontend
-FROM node:20-alpine AS frontend-build
+FROM node:20 AS frontend-build
 
 WORKDIR /app/frontend
 
@@ -7,7 +7,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --prefer-offline --no-audit
 
 # Copy source code
 COPY frontend/ .
