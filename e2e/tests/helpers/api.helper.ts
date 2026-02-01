@@ -361,4 +361,44 @@ export class ApiHelper {
 
     return await response.json();
   }
+
+  /**
+   * Generic request method for custom API calls
+   */
+  async request(token: string, path: string, options?: {
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    data?: any;
+  }) {
+    if (!this.apiContext) await this.init();
+
+    const method = options?.method || 'GET';
+    const config: any = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+
+    if (options?.data) {
+      config.data = options.data;
+    }
+
+    switch (method) {
+      case 'GET':
+        return await this.apiContext!.get(path, config);
+      case 'POST':
+        return await this.apiContext!.post(path, config);
+      case 'PUT':
+        return await this.apiContext!.put(path, config);
+      case 'PATCH':
+        return await this.apiContext!.patch(path, config);
+      case 'DELETE':
+        return await this.apiContext!.delete(path, config);
+      default:
+        throw new Error(`Unsupported HTTP method: ${method}`);
+    }
+  }
+
+  async dispose() {
+    if (this.apiContext) {
+      await this.apiContext.dispose();
+    }
+  }
 }
