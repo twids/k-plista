@@ -18,14 +18,19 @@ public class AuthController : ControllerBase
     private readonly KPlistaDbContext _context;
     private readonly ILogger<AuthController> _logger;
     private readonly IJwtTokenService _jwtTokenService;
-        private readonly IConfiguration _config;
+    private readonly IConfiguration _config;
 
-        public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtTokenService jwtTokenService, IConfiguration config)
-        {
-            _context = context;
-            _logger = logger;
-            _jwtTokenService = jwtTokenService;
-            _config = config;
+    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtTokenService jwtTokenService, IConfiguration config)
+    {
+        _context = context;
+        _logger = logger;
+        _jwtTokenService = jwtTokenService;
+        _config = config;
+    }
+
+    /// <summary>
+    /// Finds or creates a user based on provider and email, handling sign in and sign up scenarios.
+    /// </summary>
     private async Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null)
     {
         var normalizedProvider = NormalizeProvider(provider);
