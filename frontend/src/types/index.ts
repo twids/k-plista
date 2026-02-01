@@ -30,6 +30,8 @@ export interface GroceryList {
   itemCount: number;
   boughtItemCount: number;
   isShared: boolean;
+  autoRemoveBoughtItemsEnabled: boolean;
+  autoRemoveBoughtItemsDelayMinutes: number;
 }
 
 export interface GroceryItem {
@@ -73,6 +75,8 @@ export interface ListShare {
 export interface CreateGroceryListDto {
   name: string;
   description?: string;
+  autoRemoveBoughtItemsEnabled?: boolean;
+  autoRemoveBoughtItemsDelayMinutes?: number;
 }
 
 export interface CreateGroceryItemDto {

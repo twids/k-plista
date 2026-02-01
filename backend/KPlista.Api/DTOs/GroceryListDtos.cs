@@ -10,17 +10,23 @@ public record GroceryListDto(
     DateTime UpdatedAt,
     int ItemCount,
     int BoughtItemCount,
-    bool IsShared
+    bool IsShared,
+    bool AutoRemoveBoughtItemsEnabled,
+    int AutoRemoveBoughtItemsDelayMinutes
 );
 
 public record CreateGroceryListDto(
     string Name,
-    string? Description
+    string? Description,
+    bool AutoRemoveBoughtItemsEnabled = false,
+    int AutoRemoveBoughtItemsDelayMinutes = 360
 );
 
 public record UpdateGroceryListDto(
     string Name,
-    string? Description
+    string? Description,
+    bool? AutoRemoveBoughtItemsEnabled = null,
+    int? AutoRemoveBoughtItemsDelayMinutes = null
 );
 
 public record MagicLinkDto(

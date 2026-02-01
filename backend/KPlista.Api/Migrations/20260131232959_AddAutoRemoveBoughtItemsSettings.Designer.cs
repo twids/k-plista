@@ -3,6 +3,7 @@ using System;
 using KPlista.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KPlista.Api.Migrations
 {
     [DbContext(typeof(KPlistaDbContext))]
-    partial class KPlistaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260131232959_AddAutoRemoveBoughtItemsSettings")]
+    partial class AddAutoRemoveBoughtItemsSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -63,9 +66,6 @@ namespace KPlista.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("AutoRemoveJobId")
-                        .HasColumnType("text");
-
                     b.Property<DateTime?>("BoughtAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -114,7 +114,7 @@ namespace KPlista.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("AutoRemoveBoughtItemsDelayMinutes")
+                    b.Property<int?>("AutoRemoveBoughtItemsDelayMinutes")
                         .HasColumnType("integer");
 
                     b.Property<bool>("AutoRemoveBoughtItemsEnabled")

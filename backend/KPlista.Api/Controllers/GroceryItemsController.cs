@@ -6,7 +6,9 @@ using KPlista.Api.Data;
 using KPlista.Api.DTOs;
 using KPlista.Api.Models;
 using KPlista.Api.Hubs;
+using KPlista.Api.Services;
 using System.Security.Claims;
+using Hangfire;
 
 namespace KPlista.Api.Controllers;
 
@@ -273,6 +275,7 @@ public class GroceryItemsController : ControllerBase
         }
 
         var item = await _context.GroceryItems
+            .Include(gi => gi.GroceryList)
             .FirstOrDefaultAsync(gi => gi.Id == id && gi.GroceryListId == listId);
 
         if (item == null)
@@ -283,6 +286,43 @@ public class GroceryItemsController : ControllerBase
         item.IsBought = dto.IsBought;
         item.BoughtAt = dto.IsBought ? DateTime.UtcNow : null;
         item.UpdatedAt = DateTime.UtcNow;
+
+        // Handle Hangfire job for auto-removal
+        // Note: There's a theoretical race condition if the same item is marked bought
+        // concurrently, but the cleanup service validates item state before deletion,
+        // and the job cancellation + SaveChanges sequence minimizes this risk.
+        if (dto.IsBought && item.GroceryList.AutoRemoveBoughtItemsEnabled)
+        {
+            // Cancel any existing pending deletion job first
+            if (!string.IsNullOrEmpty(item.AutoRemoveJobId))
+            {
+                BackgroundJob.Delete(item.AutoRemoveJobId);
+                _logger.LogInformation(
+                    "Cancelled previous auto-deletion job {JobId} for item {ItemId}",
+                    item.AutoRemoveJobId, id);
+            }
+            
+            // Schedule new deletion job
+            var delayMinutes = item.GroceryList.AutoRemoveBoughtItemsDelayMinutes;
+            var jobId = BackgroundJob.Schedule<BoughtItemCleanupService>(
+                service => service.DeleteBoughtItemAsync(id, listId),
+                TimeSpan.FromMinutes(delayMinutes));
+            
+            item.AutoRemoveJobId = jobId;
+            
+            _logger.LogInformation(
+                "Scheduled auto-deletion for item {ItemId} in {DelayMinutes} minutes (JobId: {JobId})", 
+                id, delayMinutes, jobId);
+        }
+        else if (!dto.IsBought && !string.IsNullOrEmpty(item.AutoRemoveJobId))
+        {
+            // Item unmarked as bought - cancel pending deletion job
+            BackgroundJob.Delete(item.AutoRemoveJobId);
+            _logger.LogInformation(
+                "Item {ItemId} unmarked as bought, cancelled auto-deletion job {JobId}", 
+                id, item.AutoRemoveJobId);
+            item.AutoRemoveJobId = null;
+        }
 
         await _context.SaveChangesAsync();
 

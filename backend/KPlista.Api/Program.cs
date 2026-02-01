@@ -10,6 +10,8 @@ using KPlista.Api.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using Serilog.Context;
+using Hangfire;
+using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +33,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IExternalUserService, ExternalUserService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<OAuthTicketHandler>();
+builder.Services.AddScoped<BoughtItemCleanupService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -61,6 +64,17 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? "Host=localhost;Database=kplista;Username=postgres;Password=postgres";
 builder.Services.AddDbContext<KPlistaDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+// Configure Hangfire with PostgreSQL storage
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options =>
+        options.UseNpgsqlConnection(connectionString)));
+
+// Add Hangfire server
+builder.Services.AddHangfireServer();
 
 // Forwarded headers (reverse proxy TLS termination); DO NOT trust all proxies blindly.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -305,6 +319,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     // Only use CORS in development for local dev servers
     app.UseCors("AllowFrontend");
+    
+    // Hangfire Dashboard (development only for security)
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = new[] { new HangfireAuthorizationFilter() }
+    });
 }
 
 // HTTPS redirection only in development; Docker container runs on HTTP behind a reverse proxy
