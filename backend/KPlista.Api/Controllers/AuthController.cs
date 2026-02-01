@@ -18,12 +18,14 @@ public class AuthController : ControllerBase
     private readonly KPlistaDbContext _context;
     private readonly ILogger<AuthController> _logger;
     private readonly IJwtTokenService _jwtTokenService;
+    private readonly IConfiguration _config;
 
-    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtTokenService jwtTokenService)
+    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtTokenService jwtTokenService, IConfiguration config)
     {
         _context = context;
         _logger = logger;
         _jwtTokenService = jwtTokenService;
+        _config = config;
     }
 
     /// <summary>
@@ -98,6 +100,30 @@ public class AuthController : ControllerBase
     private static string NormalizeProvider(string provider)
     {
         return provider.Trim().ToLowerInvariant();
+    }
+
+    // GET: api/auth/providers
+    [HttpGet("providers")]
+    [AllowAnonymous]
+    public IActionResult GetAvailableProviders()
+    {
+        var providers = new List<string>();
+
+        // Check Google: both ClientId AND ClientSecret must be present (matches Program.cs logic)
+        if (!string.IsNullOrWhiteSpace(_config["Authentication:Google:ClientId"]) &&
+            !string.IsNullOrWhiteSpace(_config["Authentication:Google:ClientSecret"]))
+        {
+            providers.Add("google");
+        }
+
+        // Check Facebook: both AppId AND AppSecret must be present (matches Program.cs logic)
+        if (!string.IsNullOrWhiteSpace(_config["Authentication:Facebook:AppId"]) &&
+            !string.IsNullOrWhiteSpace(_config["Authentication:Facebook:AppSecret"]))
+        {
+            providers.Add("facebook");
+        }
+
+        return Ok(new { providers });
     }
 
     // GET: api/auth/me

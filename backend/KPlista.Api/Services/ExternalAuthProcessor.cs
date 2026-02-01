@@ -50,8 +50,6 @@ public class ExternalUserService : IExternalUserService
     public async Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null, CancellationToken ct = default)
     {
         var normalizedProvider = NormalizeProvider(provider);
-        var maskedEmail = LogMasking.MaskEmail(email);
-        var maskedExtId = LogMasking.MaskExternalId(externalUserId);
 
         // Try exact match: provider + externalUserId
         var user = await _db.Users.FirstOrDefaultAsync(u => u.ExternalProvider == normalizedProvider && u.ExternalUserId == externalUserId, ct);
@@ -73,14 +71,15 @@ public class ExternalUserService : IExternalUserService
             if (!string.Equals(existingEmailUser.ExternalProvider, normalizedProvider, StringComparison.OrdinalIgnoreCase))
             {
                 // Email exists with different provider - linking not allowed in this flow
+                // Note: Email and external IDs are automatically masked by Serilog enricher
                 _logger.LogWarning("ExternalAuth: Email {Email} already exists with provider {Existing} (new: {New}, extId: {ExternalId})", 
-                    maskedEmail, existingEmailUser.ExternalProvider, normalizedProvider, maskedExtId);
+                    email, existingEmailUser.ExternalProvider, normalizedProvider, externalUserId);
                 throw new InvalidOperationException($"Account exists with {existingEmailUser.ExternalProvider}. Please sign in with that provider.");
             }
 
             // Same provider, different external ID (shouldn't happen often)
             _logger.LogInformation("ExternalAuth: Updating ExternalUserId for {Email} (old: {OldId}, new: {NewId})", 
-                maskedEmail, LogMasking.MaskExternalId(existingEmailUser.ExternalUserId), maskedExtId);
+                email, existingEmailUser.ExternalUserId, externalUserId);
             existingEmailUser.ExternalUserId = externalUserId;
             existingEmailUser.Name = name;
             existingEmailUser.ProfilePictureUrl = profilePictureUrl;
@@ -102,8 +101,9 @@ public class ExternalUserService : IExternalUserService
         };
 
         _db.Users.Add(newUser);
+        // Note: Email and external ID are automatically masked by Serilog enricher
         _logger.LogInformation("ExternalAuth: New user created for {Email} via {Provider} (extId: {ExternalId})", 
-            maskedEmail, normalizedProvider, maskedExtId);
+            email, normalizedProvider, externalUserId);
         return newUser;
     }
 

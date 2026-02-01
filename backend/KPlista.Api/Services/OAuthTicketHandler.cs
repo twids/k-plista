@@ -111,7 +111,8 @@ public class OAuthTicketHandler
             var user = await GetOrCreateUserWithRetryAsync(userService, db, provider, externalUserId, email, name ?? email, pictureUrl, _logger);
             
             var token = jwtService.GenerateToken(user.Id, user.Email, user.Name);
-            _logger.LogInformation("{Provider}: Authenticated {Email} (extId {ExternalId})", provider, LogMasking.MaskEmail(email), LogMasking.MaskExternalId(externalUserId));
+            // Note: Email and external ID are automatically masked by Serilog enricher
+            _logger.LogInformation("{Provider}: Authenticated {Email} (extId {ExternalId})", provider, email, externalUserId);
             
             // Set secure HTTP-only cookie
             context.Response.Cookies.Append(
@@ -184,6 +185,7 @@ public class OAuthTicketHandler
             {
                 // Exponential backoff: 100ms, 200ms, 400ms, etc.
                 var delayMs = InitialDelayMs * (int)Math.Pow(2, attempt);
+                // Note: External ID is automatically masked by Serilog enricher
                 logger.LogWarning(
                     ex, 
                     "{Provider}: DbUpdateException on attempt {Attempt}/{MaxRetries}, retrying after {DelayMs}ms. " +
@@ -192,7 +194,7 @@ public class OAuthTicketHandler
                     attempt + 1, 
                     MaxRetries, 
                     delayMs,
-                    LogMasking.MaskExternalId(externalUserId)
+                    externalUserId
                 );
 
                 // Wait before retry
@@ -204,12 +206,13 @@ public class OAuthTicketHandler
             catch (DbUpdateException) when (attempt == MaxRetries - 1)
             {
                 // Last attempt failed, give up
+                // Note: External ID is automatically masked by Serilog enricher
                 logger.LogWarning(
                     "{Provider}: Max retries ({MaxRetries}) exceeded for user provisioning (extId: {ExternalId}), " +
                     "possible persistent unique constraint violation",
                     provider,
                     MaxRetries,
-                    LogMasking.MaskExternalId(externalUserId)
+                    externalUserId
                 );
                 throw;
             }
