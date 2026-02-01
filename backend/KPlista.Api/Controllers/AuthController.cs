@@ -100,6 +100,27 @@ public class AuthController : ControllerBase
         return provider.Trim().ToLowerInvariant();
     }
 
+    // GET: api/auth/providers
+    [HttpGet("providers")]
+    [AllowAnonymous]
+    public IActionResult GetAvailableProviders()
+    {
+        var providers = new List<string>();
+        var config = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+
+        if (!string.IsNullOrWhiteSpace(config["Authentication:Google:ClientId"]))
+        {
+            providers.Add("google");
+        }
+
+        if (!string.IsNullOrWhiteSpace(config["Authentication:Facebook:AppId"]))
+        {
+            providers.Add("facebook");
+        }
+
+        return Ok(new { providers });
+    }
+
     // GET: api/auth/me
     [HttpGet("me")]
     [Authorize]

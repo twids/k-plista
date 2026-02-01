@@ -104,7 +104,8 @@ const SortableItem = ({
       sx={{
         textDecoration: item.isBought ? 'line-through' : 'none',
         opacity: item.isBought ? 0.6 : 1,
-        py: 0.5,
+        py: 0.15,
+        minHeight: 44,
         bgcolor: isDeleting ? 'warning.light' : isDragging ? 'action.hover' : 'transparent',
         cursor: isDragging ? 'grabbing' : 'grab',
         '&:hover': {
@@ -114,7 +115,7 @@ const SortableItem = ({
     >
       <ListItemIcon
         sx={{ 
-          minWidth: 40, 
+          minWidth: 32, 
           cursor: 'grab',
           touchAction: 'none', // Prevent default touch behaviors (scrolling) on drag handle
         }}
@@ -124,18 +125,20 @@ const SortableItem = ({
       >
         <DragIndicatorIcon sx={{ color: 'text.secondary' }} />
       </ListItemIcon>
-      <ListItemIcon sx={{ minWidth: 40 }}>
+      <ListItemIcon sx={{ minWidth: 32 }}>
         <Checkbox
           edge="start"
           checked={item.isBought}
           onChange={() => onToggleBought(item)}
           tabIndex={-1}
           disabled={isDeleting}
+          sx={{ width: 44, height: 44 }}
         />
       </ListItemIcon>
       <ListItemText
         primary={item.name}
         secondary={`${item.quantity} ${item.unit || 'pcs'}`}
+        sx={{ my: 0.15 }}
       />
       <ListItemSecondaryAction>
         {isDeleting ? (
@@ -164,7 +167,7 @@ const SortableItem = ({
               aria-label={`edit ${item.name}`}
               size="small"
               onClick={() => onEdit(item)}
-              sx={{ mr: 1 }}
+              sx={{ mr: 1, width: 44, height: 44 }}
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -173,6 +176,7 @@ const SortableItem = ({
               aria-label="delete"
               size="small"
               onClick={() => onDelete(item.id, item.name)}
+              sx={{ width: 44, height: 44 }}
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -236,12 +240,12 @@ const GroupHeader = ({
   onCancelDelete,
 }: GroupHeaderProps) => {
   return (
-    <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1, bgcolor: isDeleting ? 'warning.light' : 'transparent', borderRadius: 1, py: 0.5 }}>
+    <Stack direction="row" spacing={0.25} alignItems="center" sx={{ px: 0.5, bgcolor: isDeleting ? 'warning.light' : 'transparent', borderRadius: 1, py: 0.2, minHeight: 44 }}>
       <IconButton
         size="small"
         aria-label={isCollapsed ? `Expand ${group.name} group` : `Collapse ${group.name} group`}
         onClick={onToggleCollapse}
-        sx={{ p: 0.5 }}
+        sx={{ p: 0.5, width: 44, height: 44 }}
         disabled={isDeleting}
       >
         {isCollapsed ? (
@@ -255,7 +259,7 @@ const GroupHeader = ({
       ) : (
         <FolderIcon sx={{ color: group.color || 'primary.main', fontSize: '1.25rem' }} />
       )}
-      <Typography variant="subtitle1" fontWeight={500}>{group.name}</Typography>
+      <Typography variant="subtitle1" fontWeight={500} sx={{ lineHeight: 1.2 }}>{group.name}</Typography>
       <Chip size="small" label={groupItemsCount} />
       <Box sx={{ flexGrow: 1 }} />
       {activeId && !isDeleting && (
@@ -298,6 +302,7 @@ const GroupHeader = ({
             size="small"
             aria-label={`edit-group-${group.name}`}
             onClick={onEdit}
+            sx={{ width: 44, height: 44 }}
           >
             <EditIcon fontSize="small" />
           </IconButton>
@@ -305,6 +310,7 @@ const GroupHeader = ({
             size="small"
             aria-label={`delete-group-${group.name}`}
             onClick={onDelete}
+            sx={{ width: 44, height: 44 }}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
@@ -312,7 +318,7 @@ const GroupHeader = ({
             size="small"
             aria-label={`add-item-to-group-${group.name}`}
             onClick={onAddItem}
-            sx={{ ml: 1 }}
+            sx={{ ml: 1, width: 44, height: 44 }}
           >
             <AddIcon fontSize="small" />
           </IconButton>
@@ -606,8 +612,8 @@ export const ListDetailPage = () => {
               key={group.id}
               elevation={1}
               sx={{
-                mb: 1.5,
-                p: 1,
+                mb: 0.5,
+                p: 0.5,
                 borderRadius: 2,
                 border: '2px dashed transparent',
                 transition: 'all 0.2s',
@@ -640,7 +646,7 @@ export const ListDetailPage = () => {
                   />
                 ) : (
                   <>
-                    <Box sx={{ mb: 0.5 }}>
+                    <Box sx={{ mb: 0.2 }}>
                       <GroupHeader
                         group={group}
                         groupItemsCount={groupItems.length}
@@ -667,7 +673,7 @@ export const ListDetailPage = () => {
                         {groupItems.length === 0 ? (
                           <ListItem
                             sx={{
-                              py: 2,
+                              py: 1.25,
                               justifyContent: 'center',
                               color: 'text.secondary',
                               fontStyle: 'italic',
@@ -705,7 +711,7 @@ export const ListDetailPage = () => {
         <Paper
           elevation={1}
           sx={{
-            p: 1,
+            p: 0.5,
             borderRadius: 2,
             border: '2px dashed transparent',
             transition: 'all 0.2s',
@@ -714,7 +720,7 @@ export const ListDetailPage = () => {
             },
           }}
         >
-          <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.5, px: 1 }}>
+          <Typography variant="subtitle1" fontWeight={500} sx={{ mb: 0.2, px: 0.5 }}>
             Ungrouped Items
           </Typography>
           <DroppableGroup id="ungrouped">
@@ -723,7 +729,7 @@ export const ListDetailPage = () => {
                 {ungroupedItems.length === 0 ? (
                   <ListItem
                     sx={{
-                      py: 2,
+                      py: 1.25,
                       justifyContent: 'center',
                       color: 'text.secondary',
                       fontStyle: 'italic',
@@ -774,7 +780,7 @@ export const ListDetailPage = () => {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <Box sx={{ pb: 7 }}>
+      <Box sx={{ pb: 6 }}>
         <AppBar position="static">
           <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
             <IconButton
@@ -814,10 +820,10 @@ export const ListDetailPage = () => {
           </Toolbar>
         </AppBar>
 
-        <Container maxWidth="md" sx={{ mt: 2, px: { xs: 2, sm: 3 } }}>
+        <Container maxWidth="md" sx={{ mt: 1, px: { xs: 2, sm: 3 } }}>
           {items.length === 0 ? (
-            <Box textAlign="center" py={6}>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+            <Box textAlign="center" py={4}>
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
                 No items yet
               </Typography>
               <Typography variant="body2" color="text.secondary">
