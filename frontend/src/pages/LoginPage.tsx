@@ -11,14 +11,17 @@ export const LoginPage = () => {
   const returnUrl = searchParams.get('returnUrl') || '/lists';
   const [availableProviders, setAvailableProviders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProviders = async () => {
       try {
         const response = await api.get<{ providers: string[] }>('/auth/providers');
         setAvailableProviders(response.providers);
-      } catch (error) {
-        console.error('Failed to fetch available providers:', error);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch available providers:', err);
+        setError('Failed to load authentication providers. Please check your connection and refresh the page.');
       } finally {
         setLoading(false);
       }
@@ -63,9 +66,13 @@ export const LoginPage = () => {
 
             {loading ? (
               <CircularProgress />
+            ) : error ? (
+              <Typography variant="body2" color="error" textAlign="center">
+                {error}
+              </Typography>
             ) : availableProviders.length === 0 ? (
               <Typography variant="body2" color="error" textAlign="center">
-                No authentication providers configured. Please contact support.
+                Authentication is not configured. Please contact your administrator.
               </Typography>
             ) : (
               <Stack spacing={2} sx={{ width: '100%', mt: 3 }}>

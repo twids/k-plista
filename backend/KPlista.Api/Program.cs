@@ -192,7 +192,7 @@ if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(goo
 }
 else if (!builder.Environment.IsDevelopment())
 {
-    throw new ArgumentException("Google authentication is enabled but ClientId/ClientSecret are missing.");
+    throw new ArgumentException("Google authentication requires ClientId and ClientSecret to be configured.");
 }
 else
 {
@@ -243,7 +243,7 @@ if (!string.IsNullOrWhiteSpace(facebookAppId) && !string.IsNullOrWhiteSpace(face
 }
 else if (!builder.Environment.IsDevelopment())
 {
-    throw new ArgumentException("Facebook authentication is enabled but AppId/AppSecret are missing.");
+    throw new ArgumentException("Facebook authentication requires AppId and AppSecret to be configured.");
 }
 else
 {

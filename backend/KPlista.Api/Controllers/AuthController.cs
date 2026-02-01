@@ -18,17 +18,14 @@ public class AuthController : ControllerBase
     private readonly KPlistaDbContext _context;
     private readonly ILogger<AuthController> _logger;
     private readonly IJwtTokenService _jwtTokenService;
+        private readonly IConfiguration _config;
 
-    public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtTokenService jwtTokenService)
-    {
-        _context = context;
-        _logger = logger;
-        _jwtTokenService = jwtTokenService;
-    }
-
-    /// <summary>
-    /// Finds or creates a user based on provider and email, handling sign in and sign up scenarios.
-    /// </summary>
+        public AuthController(KPlistaDbContext context, ILogger<AuthController> logger, IJwtTokenService jwtTokenService, IConfiguration config)
+        {
+            _context = context;
+            _logger = logger;
+            _jwtTokenService = jwtTokenService;
+            _config = config;
     private async Task<User> GetOrCreateUserAsync(string provider, string externalUserId, string email, string name, string? profilePictureUrl = null)
     {
         var normalizedProvider = NormalizeProvider(provider);
@@ -106,14 +103,17 @@ public class AuthController : ControllerBase
     public IActionResult GetAvailableProviders()
     {
         var providers = new List<string>();
-        var config = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
 
-        if (!string.IsNullOrWhiteSpace(config["Authentication:Google:ClientId"]))
+        // Check Google: both ClientId AND ClientSecret must be present (matches Program.cs logic)
+        if (!string.IsNullOrWhiteSpace(_config["Authentication:Google:ClientId"]) &&
+            !string.IsNullOrWhiteSpace(_config["Authentication:Google:ClientSecret"]))
         {
             providers.Add("google");
         }
 
-        if (!string.IsNullOrWhiteSpace(config["Authentication:Facebook:AppId"]))
+        // Check Facebook: both AppId AND AppSecret must be present (matches Program.cs logic)
+        if (!string.IsNullOrWhiteSpace(_config["Authentication:Facebook:AppId"]) &&
+            !string.IsNullOrWhiteSpace(_config["Authentication:Facebook:AppSecret"]))
         {
             providers.Add("facebook");
         }
