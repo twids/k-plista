@@ -97,7 +97,7 @@ test.describe('Grocery Items Management API', () => {
       'Get ripe ones'
     );
     
-    expect(item.notes).toBe('Get ripe ones');
+    expect(item.description).toBe('Get ripe ones');
   });
 
   test('should handle items with special characters', async () => {

@@ -12,14 +12,16 @@ export interface GroceryList {
 export interface GroceryItem {
   id: string;
   name: string;
+  description?: string; // API uses description, not notes
   quantity: number;
   unit?: string;
-  notes?: string;
   isBought: boolean;
   groupId?: string;
+  groupName?: string;
   groceryListId: string;
   createdAt: string;
   updatedAt: string;
+  boughtAt?: string;
 }
 
 export interface ItemGroup {
@@ -118,7 +120,13 @@ export class ApiHelper {
       throw new Error(`Update list failed: ${response.status()}`);
     }
 
-    return await response.json();
+    // API returns 204 No Content, so we need to fetch the updated list
+    const lists = await this.getGroceryLists(token);
+    const updatedList = lists.find(list => list.id === listId);
+    if (!updatedList) {
+      throw new Error(`List ${listId} not found after update`);
+    }
+    return updatedList;
   }
 
   /**
@@ -152,7 +160,7 @@ export class ApiHelper {
 
     const response = await this.apiContext!.post(`/api/grocerylists/${listId}/items`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { name, quantity, unit, notes, groupId }
+      data: { name, quantity, unit, description: notes, groupId }
     });
 
     if (!response.ok()) {
@@ -190,16 +198,38 @@ export class ApiHelper {
   ): Promise<GroceryItem> {
     if (!this.apiContext) await this.init();
 
+    // Fetch current item to get all fields (API requires all fields for PUT)
+    const items = await this.getGroceryItems(token, listId);
+    const currentItem = items.find(item => item.id === itemId);
+    if (!currentItem) {
+      throw new Error(`Item ${itemId} not found`);
+    }
+
+    // Merge updates with current values
+    const payload = {
+      name: updates.name ?? currentItem.name,
+      description: updates.description ?? currentItem.description,
+      quantity: updates.quantity ?? currentItem.quantity,
+      unit: updates.unit ?? currentItem.unit,
+      groupId: updates.groupId ?? currentItem.groupId
+    };
+
     const response = await this.apiContext!.put(`/api/grocerylists/${listId}/items/${itemId}`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: updates
+      data: payload
     });
 
     if (!response.ok()) {
       throw new Error(`Update item failed: ${response.status()}`);
     }
 
-    return await response.json();
+    // API returns 204 No Content, so we need to fetch the updated item
+    const updatedItems = await this.getGroceryItems(token, listId);
+    const updatedItem = updatedItems.find(item => item.id === itemId);
+    if (!updatedItem) {
+      throw new Error(`Item ${itemId} not found after update`);
+    }
+    return updatedItem;
   }
 
   /**
@@ -217,7 +247,13 @@ export class ApiHelper {
       throw new Error(`Mark item bought failed: ${response.status()}`);
     }
 
-    return await response.json();
+    // API returns 204 No Content, so we need to fetch the updated item
+    const items = await this.getGroceryItems(token, listId);
+    const updatedItem = items.find(item => item.id === itemId);
+    if (!updatedItem) {
+      throw new Error(`Item ${itemId} not found after marking bought`);
+    }
+    return updatedItem;
   }
 
   /**
@@ -299,7 +335,7 @@ export class ApiHelper {
 
     const response = await this.apiContext!.post(`/api/grocerylists/${listId}/shares`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { userEmail, canEdit }
+      data: { sharedWithUserEmail: userEmail, canEdit }
     });
 
     if (!response.ok()) {

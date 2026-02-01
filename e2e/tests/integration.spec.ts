@@ -99,13 +99,13 @@ test.describe('End-to-End User Flow', () => {
     // Step 7: Update an item
     await apiHelper.updateGroceryItem(userToken, list.id, chicken.id, {
       quantity: 3,
-      notes: 'Changed mind, need more'
+      description: 'Changed mind, need more'
     });
 
     const updatedChicken = (await apiHelper.getGroceryItems(userToken, list.id))
       .find(i => i.id === chicken.id);
     expect(updatedChicken?.quantity).toBe(3);
-    expect(updatedChicken?.notes).toBe('Changed mind, need more');
+    expect(updatedChicken?.description).toBe('Changed mind, need more');
 
     // Step 8: Delete a bought item
     await apiHelper.deleteGroceryItem(userToken, list.id, apple.id);

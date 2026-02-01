@@ -89,6 +89,6 @@ test.describe('Item Groups Management API', () => {
     const group = await apiHelper.createItemGroup(userToken, testListId, 'No Color Group');
     
     expect(group.name).toBe('No Color Group');
-    expect(group.color).toBeUndefined();
+    expect(group.color).toBeNull(); // API returns null for missing optional fields
   });
 });
