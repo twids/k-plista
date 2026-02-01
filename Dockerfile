@@ -1,4 +1,6 @@
 # Build frontend
+# Note: Using node:20 instead of node:20-alpine because Alpine has npm issues
+# (timeout errors during npm ci/install). Standard node image is more reliable.
 FROM node:20 AS frontend-build
 
 WORKDIR /app/frontend

@@ -135,22 +135,22 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
   });
 
   test('should fail when user does not have edit access to list', async () => {
-    // Create another user
-    const user2 = await authHelper.createAuthenticatedUser('admin');
+    // Create admin user (different from user1)
+    const adminUser = await authHelper.createAuthenticatedUser('admin');
     
     // Create an API key for admin user
-    const apiKeyResponse = await apiHelper.request(user2.token, '/api/settings/api-keys', {
+    const apiKeyResponse = await apiHelper.request(adminUser.token, '/api/settings/api-keys', {
       method: 'POST',
       data: { name: 'Admin API Key' }
     });
     const apiKeyData = await apiKeyResponse.json();
-    const user2ApiKey = apiKeyData.key;
+    const adminApiKey = apiKeyData.key;
 
-    // Try to add to user1's list with admin's API key
+    // Try to add to user1's list with admin's API key (should fail - no access)
     if (!apiHelper['apiContext']) await apiHelper['init']();
 
     const response = await apiHelper['apiContext']!.post('/api/external/add-item', {
-      headers: { 'X-API-Key': user2ApiKey },
+      headers: { 'X-API-Key': adminApiKey },
       data: { 
         itemName: 'Should Fail',
         listId: testListId
