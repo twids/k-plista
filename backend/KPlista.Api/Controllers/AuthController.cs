@@ -121,7 +121,8 @@ public class AuthController : ControllerBase
             user.Id,
             user.Email,
             user.Name,
-            user.ProfilePictureUrl
+            user.ProfilePictureUrl,
+            user.Theme
         );
 
         return Ok(dto);

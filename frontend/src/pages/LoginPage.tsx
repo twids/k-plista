@@ -3,6 +3,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useSearchParams } from 'react-router-dom';
+import { BRAND_COLORS } from '../constants/themes';
 
 export const LoginPage = () => {
   const [searchParams] = useSearchParams();
@@ -50,8 +51,8 @@ export const LoginPage = () => {
                 startIcon={<GoogleIcon />}
                 onClick={handleGoogleLogin}
                 sx={{
-                  bgcolor: '#4285F4',
-                  '&:hover': { bgcolor: '#357ABD' },
+                  bgcolor: BRAND_COLORS.google.main,
+                  '&:hover': { bgcolor: BRAND_COLORS.google.hover },
                 }}
               >
                 Sign in with Google
@@ -64,8 +65,8 @@ export const LoginPage = () => {
                 startIcon={<FacebookIcon />}
                 onClick={handleFacebookLogin}
                 sx={{
-                  bgcolor: '#1877F2',
-                  '&:hover': { bgcolor: '#145DBF' },
+                  bgcolor: BRAND_COLORS.facebook.main,
+                  '&:hover': { bgcolor: BRAND_COLORS.facebook.hover },
                 }}
               >
                 Sign in with Facebook

@@ -4,5 +4,6 @@ public record UserDto(
     Guid Id,
     string Email,
     string Name,
-    string? ProfilePictureUrl
+    string? ProfilePictureUrl,
+    string? Theme
 );

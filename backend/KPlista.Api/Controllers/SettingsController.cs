@@ -18,6 +18,13 @@ public class SettingsController : ControllerBase
     private readonly IApiKeyService _apiKeyService;
     private readonly ILogger<SettingsController> _logger;
 
+    private static readonly HashSet<string> AllowedThemes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "default",
+        "modern",
+        "dark"
+    };
+
     public SettingsController(
         KPlistaDbContext context,
         IApiKeyService apiKeyService,
@@ -170,6 +177,57 @@ public class SettingsController : ControllerBase
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("User {UserId} set default list to {ListId}", userId, dto.ListId);
+
+        return NoContent();
+    }
+
+    // GET: api/settings/theme
+    [HttpGet("theme")]
+    public async Task<ActionResult<ThemeDto>> GetTheme()
+    {
+        var userId = GetCurrentUserId();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new ThemeDto(user.Theme));
+    }
+
+    // PUT: api/settings/theme
+    [HttpPut("theme")]
+    public async Task<IActionResult> SetTheme(ThemeDto dto)
+    {
+        var userId = GetCurrentUserId();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        // Normalize and validate theme
+        var normalizedTheme = dto.Theme?.Trim().ToLowerInvariant();
+        
+        if (string.IsNullOrEmpty(normalizedTheme))
+        {
+            user.Theme = null;
+        }
+        else if (!AllowedThemes.Contains(normalizedTheme))
+        {
+            return BadRequest($"Invalid theme. Allowed values: {string.Join(", ", AllowedThemes)}");
+        }
+        else
+        {
+            user.Theme = normalizedTheme;
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("User {UserId} updated theme preference", userId);
 
         return NoContent();
     }

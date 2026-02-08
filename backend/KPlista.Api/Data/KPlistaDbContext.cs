@@ -30,6 +30,7 @@ public class KPlistaDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.ExternalProvider).IsRequired().HasMaxLength(50);
             entity.Property(e => e.ExternalUserId).IsRequired().HasMaxLength(256);
+            entity.Property(e => e.Theme).HasMaxLength(50);
         });
 
         // GroceryList configuration

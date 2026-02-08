@@ -21,3 +21,7 @@ public record CreateApiKeyResponseDto(
 public record DefaultListDto(
     Guid? ListId
 );
+
+public record ThemeDto(
+    string? Theme
+);
