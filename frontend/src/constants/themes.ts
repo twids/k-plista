@@ -209,8 +209,9 @@ export const THEME_OPTIONS = [
 
 // Helper function to get theme with fallback
 export const getTheme = (themeName?: string | null): Theme => {
-  if (!themeName || !(themeName in THEMES)) {
+  const normalizedName = themeName?.toLowerCase();
+  if (!normalizedName || !Object.prototype.hasOwnProperty.call(THEMES, normalizedName)) {
     return THEMES.default;
   }
-  return THEMES[themeName as ThemeName];
+  return THEMES[normalizedName as ThemeName];
 };

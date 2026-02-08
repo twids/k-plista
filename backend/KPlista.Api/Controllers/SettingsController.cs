@@ -18,6 +18,13 @@ public class SettingsController : ControllerBase
     private readonly IApiKeyService _apiKeyService;
     private readonly ILogger<SettingsController> _logger;
 
+    private static readonly HashSet<string> AllowedThemes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "default",
+        "modern",
+        "dark"
+    };
+
     public SettingsController(
         KPlistaDbContext context,
         IApiKeyService apiKeyService,
@@ -201,11 +208,26 @@ public class SettingsController : ControllerBase
             return NotFound();
         }
 
-        user.Theme = dto.Theme;
+        // Normalize and validate theme
+        var normalizedTheme = dto.Theme?.Trim().ToLowerInvariant();
+        
+        if (string.IsNullOrEmpty(normalizedTheme))
+        {
+            user.Theme = null;
+        }
+        else if (!AllowedThemes.Contains(normalizedTheme))
+        {
+            return BadRequest($"Invalid theme. Allowed values: {string.Join(", ", AllowedThemes)}");
+        }
+        else
+        {
+            user.Theme = normalizedTheme;
+        }
+
         user.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("User {UserId} set theme to {Theme}", userId, dto.Theme);
+        _logger.LogInformation("User {UserId} updated theme preference", userId);
 
         return NoContent();
     }
