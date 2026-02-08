@@ -11,6 +11,7 @@ public class User
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid? DefaultListId { get; set; }
+    public string? Theme { get; set; }
 
     // Navigation properties
     public ICollection<GroceryList> OwnedLists { get; set; } = new List<GroceryList>();
