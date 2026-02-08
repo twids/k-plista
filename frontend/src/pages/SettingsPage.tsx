@@ -35,8 +35,11 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import type { ApiKey, CreateApiKeyResponse, GroceryList } from '../types';
 import { settingsService } from '../services/settingsService';
 import { groceryListService } from '../services/groceryListService';
+import { useTheme } from '../hooks/useTheme';
+import { THEME_OPTIONS } from '../constants/themes';
 
 export const SettingsPage = () => {
+  const { currentTheme, setTheme } = useTheme();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [lists, setLists] = useState<GroceryList[]>([]);
   const [defaultListId, setDefaultListId] = useState<string>('');
@@ -132,6 +135,16 @@ export const SettingsPage = () => {
     }
   };
 
+  const handleThemeChange = async (theme: string) => {
+    try {
+      await setTheme(theme);
+      setSnackbar({ open: true, message: 'Theme updated', severity: 'success' });
+    } catch (error) {
+      console.error('Failed to update theme:', error);
+      setSnackbar({ open: true, message: 'Failed to update theme', severity: 'error' });
+    }
+  };
+
   const handleCopyApiKey = () => {
     if (newApiKey) {
       navigator.clipboard.writeText(newApiKey.key);
@@ -188,6 +201,32 @@ export const SettingsPage = () => {
                 {lists.map((list) => (
                   <MenuItem key={list.id} value={list.id}>
                     {list.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </CardContent>
+        </Card>
+
+        {/* Theme Preference */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Theme Preference
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Choose your preferred visual theme for the application.
+            </Typography>
+            <FormControl fullWidth>
+              <InputLabel>Theme</InputLabel>
+              <Select
+                value={currentTheme}
+                label="Theme"
+                onChange={(e) => handleThemeChange(e.target.value)}
+              >
+                {THEME_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
                   </MenuItem>
                 ))}
               </Select>
