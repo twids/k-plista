@@ -1,8 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProvider as MuiThemeProvider, CssBaseline } from '@mui/material';
+import { useMemo } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { SignalRProvider } from './contexts/SignalRContext';
 import { useAuth } from './hooks/useAuth';
+import { useTheme } from './hooks/useTheme';
+import { getTheme } from './constants/themes';
 import { LoginPage } from './pages/LoginPage';
 import { ListsPage } from './pages/ListsPage';
 import { ListDetailPage } from './pages/ListDetailPage';
@@ -10,28 +14,6 @@ import { AcceptSharePage } from './pages/AcceptSharePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UpdateBanner } from './components/UpdateBanner';
 import { LoadingScreen } from './components/LoadingScreen';
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          margin: 0,
-          padding: 0,
-        },
-      },
-    },
-  },
-});
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -77,19 +59,30 @@ function AppRoutes() {
   );
 }
 
+function ThemedApp() {
+  const { currentTheme } = useTheme();
+  const theme = useMemo(() => getTheme(currentTheme), [currentTheme]);
+
+  return (
+    <MuiThemeProvider theme={theme}>
+      <CssBaseline />
+      <SignalRProvider>
+        <UpdateBanner />
+        <AppRoutes />
+      </SignalRProvider>
+    </MuiThemeProvider>
+  );
+}
+
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <AuthProvider>
-          <SignalRProvider>
-            <UpdateBanner />
-            <AppRoutes />
-          </SignalRProvider>
-        </AuthProvider>
-      </Router>
-    </ThemeProvider>
+    <Router>
+      <AuthProvider>
+        <ThemeProvider>
+          <ThemedApp />
+        </ThemeProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
