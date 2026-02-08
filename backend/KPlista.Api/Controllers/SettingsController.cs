@@ -173,4 +173,40 @@ public class SettingsController : ControllerBase
 
         return NoContent();
     }
+
+    // GET: api/settings/theme
+    [HttpGet("theme")]
+    public async Task<ActionResult<ThemeDto>> GetTheme()
+    {
+        var userId = GetCurrentUserId();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new ThemeDto(user.Theme));
+    }
+
+    // PUT: api/settings/theme
+    [HttpPut("theme")]
+    public async Task<IActionResult> SetTheme(ThemeDto dto)
+    {
+        var userId = GetCurrentUserId();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        user.Theme = dto.Theme;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("User {UserId} set theme to {Theme}", userId, dto.Theme);
+
+        return NoContent();
+    }
 }
