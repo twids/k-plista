@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { ApiKey, CreateApiKeyDto, CreateApiKeyResponse, DefaultListDto } from '../types';
+import type { ApiKey, CreateApiKeyDto, CreateApiKeyResponse, DefaultListDto, ThemeDto } from '../types';
 
 export const settingsService = {
   // API Keys
@@ -17,4 +17,11 @@ export const settingsService = {
   
   setDefaultList: (data: DefaultListDto) => 
     api.put<void>('/settings/default-list', data),
+
+  // Theme
+  getTheme: () => 
+    api.get<ThemeDto>('/settings/theme'),
+  
+  setTheme: (data: ThemeDto) => 
+    api.put<void>('/settings/theme', data),
 };
