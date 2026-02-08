@@ -156,7 +156,7 @@ export const CreateGroupDialog = ({ open, onClose, onCreate, onEdit, editGroup }
                   justifyContent: 'center',
                   cursor: 'pointer',
                   borderRadius: 1,
-                  border: icon === emoji ? '2px solid #1976d2' : '1px solid #ccc',
+                  border: (theme) => icon === emoji ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
                   fontSize: '1.5rem',
                   '&:hover': {
                     bgcolor: 'action.hover',
@@ -182,7 +182,7 @@ export const CreateGroupDialog = ({ open, onClose, onCreate, onEdit, editGroup }
                   borderRadius: '50%',
                   backgroundColor: c,
                   cursor: 'pointer',
-                  border: color === c ? '3px solid #000' : '2px solid #ccc',
+                  border: (theme) => color === c ? `3px solid ${theme.palette.text.primary}` : `2px solid ${theme.palette.divider}`,
                 }}
               />
             ))}

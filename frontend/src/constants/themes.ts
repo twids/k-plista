@@ -1,5 +1,17 @@
 import { createTheme, type Theme } from "@mui/material/styles";
 
+// Brand colors for OAuth buttons (consistent across all themes)
+export const BRAND_COLORS = {
+  google: {
+    main: '#4285F4',
+    hover: '#357ABD',
+  },
+  facebook: {
+    main: '#1877F2',
+    hover: '#145DBF',
+  },
+} as const;
+
 // Default theme - clean and simple MUI default styling
 export const defaultTheme = createTheme({
   palette: {

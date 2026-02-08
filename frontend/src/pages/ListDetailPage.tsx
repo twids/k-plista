@@ -22,6 +22,7 @@ import {
   Tooltip,
   Paper,
   Button,
+  alpha,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
@@ -195,15 +196,15 @@ const DroppableGroup = ({ id, children }: DroppableGroupProps) => {
   });
 
   return (
-    <div
+    <Box
       ref={setNodeRef}
-      style={{
-        backgroundColor: isOver ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+      sx={{
+        backgroundColor: (theme) => isOver ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
         transition: 'background-color 0.2s',
       }}
     >
       {children}
-    </div>
+    </Box>
   );
 };
 
