@@ -3,6 +3,7 @@ export interface User {
   email: string;
   name: string;
   profilePictureUrl?: string;
+  theme?: string;
 }
 
 export interface LoginResponse {
@@ -151,4 +152,8 @@ export interface CreateApiKeyResponse {
 
 export interface DefaultListDto {
   listId?: string;
+}
+
+export interface ThemeDto {
+  theme?: string;
 }
