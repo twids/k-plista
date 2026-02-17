@@ -7,6 +7,8 @@ test.describe('End-to-End User Flow', () => {
   let apiHelper: ApiHelper;
   let userToken: string;
 
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeAll(async () => {
     authHelper = new AuthHelper();
     apiHelper = new ApiHelper();

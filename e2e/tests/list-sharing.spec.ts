@@ -9,6 +9,9 @@ test.describe('List Sharing API', () => {
   let user2Token: string;
   let user2Email: string;
   let testListId: string;
+  const createdListIds: string[] = [];
+
+  test.describe.configure({ mode: 'serial' });
 
   test.beforeAll(async () => {
     authHelper = new AuthHelper();
@@ -26,9 +29,18 @@ test.describe('List Sharing API', () => {
     // Create a test list for user1
     const list = await apiHelper.createGroceryList(user1Token, 'Shared Test List');
     testListId = list.id;
+    createdListIds.push(list.id);
   });
 
   test.afterAll(async () => {
+    // Clean up all created lists
+    for (const listId of createdListIds) {
+      try {
+        await apiHelper.deleteGroceryList(user1Token, listId);
+      } catch {
+        // List may already be deleted by a test
+      }
+    }
     await authHelper.dispose();
     await apiHelper.dispose();
   });
@@ -41,6 +53,7 @@ test.describe('List Sharing API', () => {
 
   test('should share a list with edit permissions', async () => {
     const list = await apiHelper.createGroceryList(user1Token, 'Editable Shared List');
+    createdListIds.push(list.id);
     const share = await apiHelper.shareList(user1Token, list.id, user2Email, true);
     
     expect(share).toBeDefined();
@@ -48,6 +61,7 @@ test.describe('List Sharing API', () => {
 
   test('should get all shares for a list', async () => {
     const list = await apiHelper.createGroceryList(user1Token, 'List with Shares');
+    createdListIds.push(list.id);
     await apiHelper.shareList(user1Token, list.id, user2Email, false);
     
     const shares = await apiHelper.getListShares(user1Token, list.id);
@@ -57,6 +71,7 @@ test.describe('List Sharing API', () => {
 
   test('shared user should see the list in their lists', async () => {
     const list = await apiHelper.createGroceryList(user1Token, 'Visible to User2');
+    createdListIds.push(list.id);
     await apiHelper.shareList(user1Token, list.id, user2Email, false);
     
     const user2Lists = await apiHelper.getGroceryLists(user2Token);
@@ -65,6 +80,7 @@ test.describe('List Sharing API', () => {
 
   test('shared user with view-only should see items', async () => {
     const list = await apiHelper.createGroceryList(user1Token, 'View Only List');
+    createdListIds.push(list.id);
     await apiHelper.addGroceryItem(user1Token, list.id, 'Test Item', 1);
     await apiHelper.shareList(user1Token, list.id, user2Email, false);
     
@@ -74,6 +90,7 @@ test.describe('List Sharing API', () => {
 
   test('shared user with edit permission should be able to add items', async () => {
     const list = await apiHelper.createGroceryList(user1Token, 'Editable List');
+    createdListIds.push(list.id);
     await apiHelper.shareList(user1Token, list.id, user2Email, true);
     
     const item = await apiHelper.addGroceryItem(user2Token, list.id, 'Added by User2', 1);
@@ -86,6 +103,7 @@ test.describe('List Sharing API', () => {
 
   test('owner should be able to delete their own list', async () => {
     const list = await apiHelper.createGroceryList(user1Token, 'List to Delete');
+    // Don't add to createdListIds since this test explicitly deletes it
     await apiHelper.shareList(user1Token, list.id, user2Email, false);
     
     await apiHelper.deleteGroceryList(user1Token, list.id);

@@ -16,8 +16,8 @@ export default defineConfig({
     timeout: 5000
   },
   
-  // Run tests in files in parallel
-  fullyParallel: true,
+  // Run tests in files in parallel, but tests within each file run serially (shared state via beforeAll)
+  fullyParallel: false,
   
   // Fail the build on CI if you accidentally left test.only in the source code
   forbidOnly: !!process.env.CI,

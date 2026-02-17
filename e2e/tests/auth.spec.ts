@@ -14,6 +14,8 @@ test.describe('Authentication', () => {
     await authHelper.dispose();
   });
 
+  test.describe.configure({ mode: 'serial' });
+
   test('should login successfully via API', async () => {
     const user = await authHelper.createAuthenticatedUser('user1');
     
@@ -45,10 +47,8 @@ test.describe('Authentication', () => {
     await loginPage.loginWithToken(user.token);
     await page.waitForURL('/lists');
     
-    // Logout by clearing localStorage
-    await page.evaluate(() => {
-      localStorage.removeItem('token');
-    });
+    // Clear the auth cookie (simulates logout)
+    await page.context().clearCookies();
     
     // Try to access protected route
     await page.goto('/lists');

@@ -9,9 +9,14 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
   let apiKey: string;
   let testListId: string;
 
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeAll(async () => {
     authHelper = new AuthHelper();
     apiHelper = new ApiHelper();
+    await authHelper.init();
+    await apiHelper.init();
+
     const user = await authHelper.createAuthenticatedUser('user1');
     userToken = user.token;
 
@@ -35,15 +40,19 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
   });
 
   test.afterAll(async () => {
+    // Clean up test data
+    try {
+      await apiHelper.deleteGroceryList(userToken, testListId);
+    } catch {
+      // List may already be deleted
+    }
     await authHelper.dispose();
     await apiHelper.dispose();
   });
 
   test('should add item via external API with default list', async () => {
-    if (!apiHelper['apiContext']) await apiHelper['init']();
-
-    const response = await apiHelper['apiContext']!.post('/api/external/add-item', {
-      headers: { 'X-API-Key': apiKey },
+    const response = await apiHelper.externalApiRequest(apiKey, '/api/external/add-item', {
+      method: 'POST',
       data: { itemName: 'Milk from API' }
     });
 
@@ -56,10 +65,8 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
   });
 
   test('should add item via external API with specific list', async () => {
-    if (!apiHelper['apiContext']) await apiHelper['init']();
-
-    const response = await apiHelper['apiContext']!.post('/api/external/add-item', {
-      headers: { 'X-API-Key': apiKey },
+    const response = await apiHelper.externalApiRequest(apiKey, '/api/external/add-item', {
+      method: 'POST',
       data: { 
         itemName: 'Bread from API',
         listId: testListId 
@@ -74,9 +81,8 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
   });
 
   test('should fail without API key', async () => {
-    if (!apiHelper['apiContext']) await apiHelper['init']();
-
-    const response = await apiHelper['apiContext']!.post('/api/external/add-item', {
+    const response = await apiHelper.externalApiRequest(null, '/api/external/add-item', {
+      method: 'POST',
       data: { itemName: 'Should Fail' }
     });
 
@@ -85,10 +91,8 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
   });
 
   test('should fail with invalid API key', async () => {
-    if (!apiHelper['apiContext']) await apiHelper['init']();
-
-    const response = await apiHelper['apiContext']!.post('/api/external/add-item', {
-      headers: { 'X-API-Key': 'invalid-key-12345' },
+    const response = await apiHelper.externalApiRequest('invalid-key-12345', '/api/external/add-item', {
+      method: 'POST',
       data: { itemName: 'Should Fail' }
     });
 
@@ -100,6 +104,12 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
     // Create a new user without a default list
     const user2 = await authHelper.createAuthenticatedUser('user2');
     
+    // Ensure user2 has no default list set (may have been set by other test suites)
+    await apiHelper.request(user2.token, '/api/settings/default-list', {
+      method: 'PUT',
+      data: { listId: null }
+    });
+
     // Create an API key for user2
     const apiKeyResponse = await apiHelper.request(user2.token, '/api/settings/api-keys', {
       method: 'POST',
@@ -108,10 +118,8 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
     const apiKeyData = await apiKeyResponse.json();
     const user2ApiKey = apiKeyData.key;
 
-    if (!apiHelper['apiContext']) await apiHelper['init']();
-
-    const response = await apiHelper['apiContext']!.post('/api/external/add-item', {
-      headers: { 'X-API-Key': user2ApiKey },
+    const response = await apiHelper.externalApiRequest(user2ApiKey, '/api/external/add-item', {
+      method: 'POST',
       data: { itemName: 'Should Fail' }
     });
 
@@ -120,10 +128,8 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
   });
 
   test('should fail when listId does not exist', async () => {
-    if (!apiHelper['apiContext']) await apiHelper['init']();
-
-    const response = await apiHelper['apiContext']!.post('/api/external/add-item', {
-      headers: { 'X-API-Key': apiKey },
+    const response = await apiHelper.externalApiRequest(apiKey, '/api/external/add-item', {
+      method: 'POST',
       data: { 
         itemName: 'Should Fail',
         listId: '00000000-0000-0000-0000-000000000000'
@@ -147,10 +153,8 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
     const adminApiKey = apiKeyData.key;
 
     // Try to add to user1's list with admin's API key (should fail - no access)
-    if (!apiHelper['apiContext']) await apiHelper['init']();
-
-    const response = await apiHelper['apiContext']!.post('/api/external/add-item', {
-      headers: { 'X-API-Key': adminApiKey },
+    const response = await apiHelper.externalApiRequest(adminApiKey, '/api/external/add-item', {
+      method: 'POST',
       data: { 
         itemName: 'Should Fail',
         listId: testListId
@@ -163,10 +167,8 @@ test.describe('External API (Webhook/Voice Assistant)', () => {
 
   test('should verify item was added via external API', async () => {
     // Add an item via external API
-    if (!apiHelper['apiContext']) await apiHelper['init']();
-
-    await apiHelper['apiContext']!.post('/api/external/add-item', {
-      headers: { 'X-API-Key': apiKey },
+    await apiHelper.externalApiRequest(apiKey, '/api/external/add-item', {
+      method: 'POST',
       data: { itemName: 'Verification Item' }
     });
 

@@ -22,16 +22,25 @@ export class LoginPage {
   }
 
   /**
-   * Login with a test token by setting it in localStorage
-   * This bypasses the OAuth flow for testing
+   * Login with a test token by setting the auth_token cookie.
+   * This bypasses the OAuth flow for testing.
+   * The backend reads JWT from this HttpOnly cookie for authentication.
    */
   async loginWithToken(token: string) {
+    // Navigate first to establish the origin for cookie scope
     await this.page.goto('/login');
-    await this.page.evaluate((tkn) => {
-      localStorage.setItem('token', tkn);
-    }, token);
+
+    // Set the auth_token cookie (matches what the OAuth callback sets)
+    const url = new URL(this.page.url());
+    await this.page.context().addCookies([{
+      name: 'auth_token',
+      value: token,
+      domain: url.hostname,
+      path: '/',
+    }]);
+
+    // Navigate to the protected route - the cookie will be sent automatically
     await this.page.goto('/lists');
-    // Wait for navigation to complete
     await this.page.waitForURL('/lists');
   }
 }

@@ -49,10 +49,6 @@ export class ApiHelper {
     });
   }
 
-  async dispose() {
-    await this.apiContext?.dispose();
-  }
-
   /**
    * Create a grocery list
    */
@@ -375,6 +371,43 @@ export class ApiHelper {
     const config: any = {
       headers: { Authorization: `Bearer ${token}` }
     };
+
+    if (options?.data) {
+      config.data = options.data;
+    }
+
+    switch (method) {
+      case 'GET':
+        return await this.apiContext!.get(path, config);
+      case 'POST':
+        return await this.apiContext!.post(path, config);
+      case 'PUT':
+        return await this.apiContext!.put(path, config);
+      case 'PATCH':
+        return await this.apiContext!.patch(path, config);
+      case 'DELETE':
+        return await this.apiContext!.delete(path, config);
+      default:
+        throw new Error(`Unsupported HTTP method: ${method}`);
+    }
+  }
+
+  /**
+   * Make a request using an API key (for external API endpoints).
+   * Pass null for apiKey to test unauthenticated requests.
+   */
+  async externalApiRequest(apiKey: string | null, path: string, options?: {
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    data?: any;
+  }) {
+    if (!this.apiContext) await this.init();
+
+    const method = options?.method || 'GET';
+    const config: any = {};
+
+    if (apiKey) {
+      config.headers = { 'X-API-Key': apiKey };
+    }
 
     if (options?.data) {
       config.data = options.data;

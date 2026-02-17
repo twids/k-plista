@@ -8,9 +8,14 @@ test.describe('Settings API', () => {
   let userToken: string;
   let testListId: string;
 
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeAll(async () => {
     authHelper = new AuthHelper();
     apiHelper = new ApiHelper();
+    await authHelper.init();
+    await apiHelper.init();
+
     const user = await authHelper.createAuthenticatedUser('user1');
     userToken = user.token;
 
@@ -20,6 +25,12 @@ test.describe('Settings API', () => {
   });
 
   test.afterAll(async () => {
+    // Clean up test list
+    try {
+      await apiHelper.deleteGroceryList(userToken, testListId);
+    } catch {
+      // List may already be deleted
+    }
     await authHelper.dispose();
     await apiHelper.dispose();
   });

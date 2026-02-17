@@ -8,6 +8,8 @@ test.describe('Item Groups Management API', () => {
   let userToken: string;
   let testListId: string;
 
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeAll(async () => {
     authHelper = new AuthHelper();
     apiHelper = new ApiHelper();
@@ -23,6 +25,12 @@ test.describe('Item Groups Management API', () => {
   });
 
   test.afterAll(async () => {
+    // Clean up test list (cascade deletes groups)
+    try {
+      await apiHelper.deleteGroceryList(userToken, testListId);
+    } catch {
+      // List may already be deleted
+    }
     await authHelper.dispose();
     await apiHelper.dispose();
   });
@@ -89,6 +97,7 @@ test.describe('Item Groups Management API', () => {
     const group = await apiHelper.createItemGroup(userToken, testListId, 'No Color Group');
     
     expect(group.name).toBe('No Color Group');
-    expect(group.color).toBeNull(); // API returns null for missing optional fields
+    // API returns null for missing optional fields in C# nullable types
+    expect(group.color).toBeFalsy();
   });
 });

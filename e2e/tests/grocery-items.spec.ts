@@ -8,6 +8,8 @@ test.describe('Grocery Items Management API', () => {
   let userToken: string;
   let testListId: string;
 
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeAll(async () => {
     authHelper = new AuthHelper();
     apiHelper = new ApiHelper();
@@ -23,6 +25,12 @@ test.describe('Grocery Items Management API', () => {
   });
 
   test.afterAll(async () => {
+    // Clean up test list (cascade deletes items)
+    try {
+      await apiHelper.deleteGroceryList(userToken, testListId);
+    } catch {
+      // List may already be deleted
+    }
     await authHelper.dispose();
     await apiHelper.dispose();
   });

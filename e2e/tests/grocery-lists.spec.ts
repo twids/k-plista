@@ -6,6 +6,9 @@ test.describe('Grocery List Management API', () => {
   let authHelper: AuthHelper;
   let apiHelper: ApiHelper;
   let userToken: string;
+  const createdListIds: string[] = [];
+
+  test.describe.configure({ mode: 'serial' });
 
   test.beforeAll(async () => {
     authHelper = new AuthHelper();
@@ -18,12 +21,21 @@ test.describe('Grocery List Management API', () => {
   });
 
   test.afterAll(async () => {
+    // Clean up all created lists
+    for (const listId of createdListIds) {
+      try {
+        await apiHelper.deleteGroceryList(userToken, listId);
+      } catch {
+        // List may already be deleted by a test
+      }
+    }
     await authHelper.dispose();
     await apiHelper.dispose();
   });
 
   test('should create a new grocery list', async () => {
     const list = await apiHelper.createGroceryList(userToken, 'Test List', 'Test Description');
+    createdListIds.push(list.id);
     
     expect(list.id).toBeDefined();
     expect(list.name).toBe('Test List');
@@ -31,9 +43,9 @@ test.describe('Grocery List Management API', () => {
   });
 
   test('should get all grocery lists', async () => {
-    // Create a couple of lists
-    await apiHelper.createGroceryList(userToken, 'List 1');
-    await apiHelper.createGroceryList(userToken, 'List 2');
+    const list1 = await apiHelper.createGroceryList(userToken, 'List 1');
+    const list2 = await apiHelper.createGroceryList(userToken, 'List 2');
+    createdListIds.push(list1.id, list2.id);
     
     const lists = await apiHelper.getGroceryLists(userToken);
     
@@ -44,6 +56,7 @@ test.describe('Grocery List Management API', () => {
 
   test('should get a specific grocery list by ID', async () => {
     const createdList = await apiHelper.createGroceryList(userToken, 'Specific List');
+    createdListIds.push(createdList.id);
     const fetchedList = await apiHelper.getGroceryList(userToken, createdList.id);
     
     expect(fetchedList.id).toBe(createdList.id);
@@ -52,6 +65,7 @@ test.describe('Grocery List Management API', () => {
 
   test('should update a grocery list', async () => {
     const list = await apiHelper.createGroceryList(userToken, 'Original Name');
+    createdListIds.push(list.id);
     const updatedList = await apiHelper.updateGroceryList(
       userToken,
       list.id,
@@ -83,6 +97,7 @@ test.describe('Grocery List Management API', () => {
   test('should isolate lists between different users', async () => {
     // Create a list for user1
     const user1List = await apiHelper.createGroceryList(userToken, 'User 1 List');
+    createdListIds.push(user1List.id);
     
     // Create user2 and their list
     const user2 = await authHelper.createAuthenticatedUser('user2');
