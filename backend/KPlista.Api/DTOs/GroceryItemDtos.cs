@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace KPlista.Api.DTOs;
 
 public record GroceryItemDto(
@@ -18,7 +20,7 @@ public record GroceryItemDto(
 public record CreateGroceryItemDto(
     string Name,
     string? Description,
-    int Quantity,
+    [Range(1, int.MaxValue)] int Quantity,
     string? Unit,
     Guid? GroupId
 );
@@ -26,7 +28,7 @@ public record CreateGroceryItemDto(
 public record UpdateGroceryItemDto(
     string Name,
     string? Description,
-    int Quantity,
+    [Range(1, int.MaxValue)] int Quantity,
     string? Unit,
     Guid? GroupId
 );

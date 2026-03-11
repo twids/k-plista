@@ -27,7 +27,7 @@ interface AddItemDialogProps {
 
 export const AddItemDialog = ({ open, groups, editItem, prefillGroupId, onClose, onAdd, onEdit, onCreateGroup }: AddItemDialogProps) => {
   const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const [quantityInput, setQuantityInput] = useState('1');
   const [unit, setUnit] = useState('');
   const [groupId, setGroupId] = useState('');
   const [showNewGroupDialog, setShowNewGroupDialog] = useState(false);
@@ -35,7 +35,7 @@ export const AddItemDialog = ({ open, groups, editItem, prefillGroupId, onClose,
   // Helper function to reset form
   const resetForm = useCallback(() => {
     setName('');
-    setQuantity(1);
+    setQuantityInput('1');
     setUnit('');
     setGroupId('');
   }, []);
@@ -44,13 +44,13 @@ export const AddItemDialog = ({ open, groups, editItem, prefillGroupId, onClose,
   useEffect(() => {
     if (editItem && open) {
       setName(editItem.name);
-      setQuantity(editItem.quantity);
+      setQuantityInput(String(editItem.quantity));
       setUnit(editItem.unit || '');
       setGroupId(editItem.groupId || '');
     } else if (!editItem && open) {
       // Reset form when opening in add mode
       setName('');
-      setQuantity(1);
+      setQuantityInput('1');
       setUnit('');
       // Set groupId to prefillGroupId if provided, otherwise empty string
       setGroupId(prefillGroupId || '');
@@ -66,8 +66,11 @@ export const AddItemDialog = ({ open, groups, editItem, prefillGroupId, onClose,
     setGroupId(value);
   };
 
+  const parseQuantity = (value: string) => Math.max(1, parseInt(value) || 1);
+
   const handleSubmit = () => {
     if (name.trim()) {
+      const quantity = parseQuantity(quantityInput);
       if (editItem && onEdit) {
         onEdit(editItem.id, name, quantity, unit || undefined, groupId || undefined);
       } else {
@@ -104,8 +107,10 @@ export const AddItemDialog = ({ open, groups, editItem, prefillGroupId, onClose,
           label="Quantity"
           type="number"
           fullWidth
-          value={quantity}
-          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+          value={quantityInput}
+          onChange={(e) => setQuantityInput(e.target.value)}
+          onBlur={() => setQuantityInput(String(parseQuantity(quantityInput)))}
+          inputProps={{ min: 1 }}
           sx={{ mb: 2 }}
         />
         <TextField
