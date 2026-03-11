@@ -66,7 +66,7 @@ export const AddItemDialog = ({ open, groups, editItem, prefillGroupId, onClose,
     setGroupId(value);
   };
 
-  const parseQuantity = (value: string) => Math.max(1, parseInt(value) || 1);
+  const parseQuantity = (value: string) => Math.max(1, parseInt(value, 10) || 1);
 
   const handleSubmit = () => {
     if (name.trim()) {
