@@ -1,5 +1,7 @@
 # Build frontend
-FROM node:20-alpine AS frontend-build
+# Note: Using node:20 instead of node:20-alpine because Alpine has npm issues
+# (timeout errors during npm ci/install). Standard node image is more reliable.
+FROM node:20 AS frontend-build
 
 WORKDIR /app/frontend
 
@@ -7,7 +9,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --prefer-offline --no-audit
 
 # Copy source code
 COPY frontend/ .
