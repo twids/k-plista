@@ -89,7 +89,14 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.KnownProxies.Add(ipAddress);
     }
-    // For container networks you could alternatively add KnownNetworks.
+    // Optional trusted proxy network in CIDR notation (ReverseProxy:TrustedProxyNetwork)
+    // Use this for Docker bridge networks where the proxy IP can vary (e.g. Traefik on 172.16.0.0/12)
+    var proxyNetwork = builder.Configuration["ReverseProxy:TrustedProxyNetwork"]; // e.g. 172.16.0.0/12
+    if (!string.IsNullOrWhiteSpace(proxyNetwork)
+        && System.Net.IPNetwork.TryParse(proxyNetwork, out var ipNetwork))
+    {
+        options.KnownIPNetworks.Add(ipNetwork);
+    }
 });
 
 // Configure Authentication

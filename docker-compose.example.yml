@@ -29,6 +29,12 @@ services:
       Jwt__Secret: "${JWT_SECRET:-your-secret-key-min-32-characters-long-for-security-please-change-in-production}"
       Jwt__Issuer: "${JWT_ISSUER:-koplista-api}"
       Jwt__Audience: "${JWT_AUDIENCE:-koplista-app}"
+      # Reverse proxy: trust X-Forwarded-Proto/Host headers from your proxy.
+      # When using Traefik (or any reverse proxy) on a Docker bridge network, set the
+      # network CIDR so the app correctly detects HTTPS and builds the right OAuth redirect URIs.
+      # Find your Docker network CIDR with: docker network inspect <network_name>
+      # Example for a typical Docker bridge network:
+      # ReverseProxy__TrustedProxyNetwork: "${REVERSE_PROXY_TRUSTED_NETWORK:-172.16.0.0/12}"
     ports:
       - "80:8080"
     depends_on:
