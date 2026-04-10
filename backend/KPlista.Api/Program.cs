@@ -76,20 +76,16 @@ builder.Services.AddHangfire(configuration => configuration
 // Add Hangfire server
 builder.Services.AddHangfireServer();
 
-// Forwarded headers (reverse proxy TLS termination); DO NOT trust all proxies blindly.
+// Forwarded headers (reverse proxy TLS termination).
+// In containerised deployments (Docker/Traefik) the proxy IP is dynamic, so we
+// clear the default loopback-only trust list and rely on ForwardLimit = 1 to
+// prevent header-injection chains.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    // Include XForwardedFor to capture real client IP when behind a proxy
     options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedFor;
-    // Limit how many entries are processed to mitigate header injection chains.
     options.ForwardLimit = 1;
-    // Optional single trusted proxy IP from configuration (ReverseProxy:TrustedProxyIp)
-    var proxyIp = builder.Configuration["ReverseProxy:TrustedProxyIp"]; // e.g. 172.18.0.1 (Docker gateway) or load balancer IP
-    if (!string.IsNullOrWhiteSpace(proxyIp) && System.Net.IPAddress.TryParse(proxyIp, out var ipAddress))
-    {
-        options.KnownProxies.Add(ipAddress);
-    }
-    // For container networks you could alternatively add KnownNetworks.
+    options.KnownProxies.Clear();
+    options.KnownIPNetworks.Clear();
 });
 
 // Configure Authentication
