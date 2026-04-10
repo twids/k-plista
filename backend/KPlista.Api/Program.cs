@@ -85,7 +85,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedFor;
     options.ForwardLimit = 1;
     options.KnownProxies.Clear();
-    options.KnownNetworks.Clear();
+    options.KnownIPNetworks.Clear();
 });
 
 // Configure Authentication
